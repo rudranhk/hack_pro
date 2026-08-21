@@ -4,6 +4,7 @@ import { Landing } from '@/pages/Landing'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { OverviewPage } from '@/pages/hospital/OverviewPage'
 import { RequestsPage } from '@/pages/hospital/RequestsPage'
+import { NewRequestPage } from '@/pages/hospital/NewRequestPage'
 import { RequestDetailPage } from '@/pages/hospital/RequestDetailPage'
 import { DonorNetworkPage } from '@/pages/hospital/DonorNetworkPage'
 import { LiveMatchesPage } from '@/pages/hospital/LiveMatchesPage'
@@ -22,6 +23,7 @@ function App() {
       <Route path="/hospital" element={<HospitalShell />}>
         <Route index element={<OverviewPage />} />
         <Route path="requests" element={<RequestsPage />} />
+        <Route path="requests/new" element={<NewRequestPage />} />
         <Route path="requests/:id" element={<RequestDetailPage />} />
         <Route path="donors" element={<DonorNetworkPage />} />
         <Route path="matches" element={<LiveMatchesPage />} />

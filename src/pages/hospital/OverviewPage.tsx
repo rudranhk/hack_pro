@@ -4,16 +4,33 @@ import { MetricCard } from '@/components/hospital/MetricCard'
 import { EmergencyRequestCard, EmergencyRequestListHeader } from '@/components/hospital/EmergencyRequestCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { buttonClasses } from '@/components/ui/Button'
-import { mockOverviewMetrics, mockRequests } from '@/lib/mockData'
+import { useRequests } from '@/lib/context/RequestsContext'
+import { mockOverviewMetrics } from '@/lib/mockData'
+import { urgencyLabel } from '@/lib/domainMeta'
+
+function urgencyCaption(activeRequests: ReturnType<typeof useRequests>['activeRequests']): string {
+  if (activeRequests.length === 0) return 'nothing open right now'
+  const counts = new Map<string, number>()
+  for (const req of activeRequests) counts.set(req.urgency, (counts.get(req.urgency) ?? 0) + 1)
+  return [...counts.entries()]
+    .map(([urgency, count]) => `${count} ${urgencyLabel[urgency as keyof typeof urgencyLabel].toLowerCase()}`)
+    .join(', ')
+}
 
 export function OverviewPage() {
+  const { activeRequests } = useRequests()
   const metrics = mockOverviewMetrics
-  const activeRequests = mockRequests
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Siren} label="Active Requests" value={metrics.activeRequests} tone="critical" caption="2 critical, 1 standard" />
+        <MetricCard
+          icon={Siren}
+          label="Active Requests"
+          value={activeRequests.length}
+          tone="critical"
+          caption={urgencyCaption(activeRequests)}
+        />
         <MetricCard icon={Users} label="Donors Responding" value={metrics.donorsResponding} tone="info" caption="across all open requests" />
         <MetricCard
           icon={Droplets}
@@ -35,10 +52,7 @@ export function OverviewPage() {
             <Link to="/hospital/requests" className={buttonClasses({ variant: 'outline', size: 'sm' })}>
               View all
             </Link>
-            <Link
-              to="/hospital/requests"
-              className={buttonClasses({ variant: 'primary', size: 'sm' })}
-            >
+            <Link to="/hospital/requests/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
               <Plus size={15} className="-ml-0.5" />
               New request
             </Link>
@@ -52,7 +66,7 @@ export function OverviewPage() {
             title="You're all caught up."
             description="There are no active emergency requests right now."
             action={
-              <Link to="/hospital/requests" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
+              <Link to="/hospital/requests/new" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
                 <Plus size={15} className="-ml-0.5" />
                 New request
               </Link>

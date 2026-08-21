@@ -41,10 +41,36 @@ export const mockRequests: EmergencyRequest[] = [
     timeElapsedLabel: '00:47',
     createdAtLabel: 'Today, 12:03 PM',
   },
+  {
+    id: 'REQ-2039',
+    hospitalName: 'City Hospital',
+    bloodGroup: 'AB+',
+    component: 'WHOLE',
+    unitsNeeded: 2,
+    unitsSecured: 2,
+    urgency: 'URGENT',
+    status: 'FULFILLED',
+    escalationTier: 'NEARBY',
+    timeElapsedLabel: '12:04',
+    createdAtLabel: 'Yesterday, 6:20 PM',
+  },
+  {
+    id: 'REQ-2031',
+    hospitalName: 'City Hospital',
+    bloodGroup: 'O+',
+    component: 'PLATELET',
+    unitsNeeded: 2,
+    unitsSecured: 1,
+    urgency: 'STANDARD',
+    status: 'EXPIRED',
+    escalationTier: 'EXPIRED',
+    timeElapsedLabel: '22:00',
+    createdAtLabel: '2 days ago, 3:15 PM',
+  },
 ]
 
+/** Aggregate KPIs that don't yet have an underlying data model (donors land in a later phase) — static demo numbers. */
 export const mockOverviewMetrics = {
-  activeRequests: 3,
   donorsResponding: 8,
   unitsSecured: 6,
   unitsTarget: 8,
