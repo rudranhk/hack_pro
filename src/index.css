@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+ * BloodLink design tokens
+ * A restrained, high-contrast palette for an emergency healthcare
+ * product: neutral surfaces, a charcoal/navy secondary, and crimson
+ * reserved for the emergency/status meaning rather than decoration.
+ * ------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  /* Neutral surfaces */
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f0f1f4;
+  --color-border: #e3e6eb;
+  --color-border-strong: #cdd2db;
+
+  /* Text */
+  --color-ink: #10141c;
+  --color-ink-secondary: #4b5261;
+  --color-ink-tertiary: #8a90a0;
+  --color-ink-inverse: #f6f7f9;
+
+  /* Brand / primary — deep crimson, used deliberately */
+  --color-primary: #a9182f;
+  --color-primary-hover: #8d1327;
+  --color-primary-active: #74101f;
+  --color-primary-subtle: #fbeaec;
+  --color-primary-subtle-border: #f2c9ce;
+
+  /* Secondary — charcoal navy */
+  --color-secondary: #12182b;
+  --color-secondary-hover: #1c2440;
+  --color-secondary-subtle: #eef0f6;
+
+  /* Status */
+  --color-success: #187f4e;
+  --color-success-subtle: #e8f6ef;
+  --color-success-border: #bfe6d3;
+
+  --color-warning: #b3690a;
+  --color-warning-subtle: #fdf1e0;
+  --color-warning-border: #f2d5a4;
+
+  --color-critical: #cf2030;
+  --color-critical-subtle: #fdeaec;
+  --color-critical-border: #f6c3c9;
+
+  --color-info: #1c5fc4;
+  --color-info-subtle: #eaf1fc;
+  --color-info-border: #bcd4f2;
+
+  /* Radius: restrained, not "rounded blob" */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Shadows: quiet elevation, no glassmorphism */
+  --shadow-color: 220 20% 10%;
+  --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.05);
+  --shadow-sm: 0 1px 3px hsl(var(--shadow-color) / 0.08), 0 1px 2px hsl(var(--shadow-color) / 0.04);
+  --shadow-md: 0 4px 10px hsl(var(--shadow-color) / 0.08), 0 2px 4px hsl(var(--shadow-color) / 0.04);
+  --shadow-lg: 0 12px 28px hsl(var(--shadow-color) / 0.12), 0 4px 8px hsl(var(--shadow-color) / 0.05);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #root {
+    min-height: 100svh;
+  }
+
+  ::selection {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary-active);
+  }
+
+  /* Custom scrollbar — quiet, not default chunky browser bars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 999px;
+    border: 2px solid var(--color-bg);
+  }
+}
+
+@layer utilities {
+  /* Numeric/tabular data (timers, distances, scores) should not jitter */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
