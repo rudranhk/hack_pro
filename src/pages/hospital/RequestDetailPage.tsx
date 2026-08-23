@@ -6,7 +6,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { EscalationTimeline } from '@/components/hospital/EscalationTimeline'
 import { DonorMap } from '@/components/hospital/DonorMap'
-import { DonorRankingPanel } from '@/components/hospital/DonorRankingPanel'
+import { LiveMatchRankingPanel } from '@/components/hospital/LiveMatchRankingPanel'
 import { useRequests } from '@/lib/context/RequestsContext'
 import { mockRankedDonors } from '@/lib/mockData'
 import { componentLabel, requestStatusHeadline, requestStatusTone } from '@/lib/domainMeta'
@@ -111,7 +111,7 @@ export function RequestDetailPage() {
                 confirmed and matched.
               </div>
             )}
-            <DonorRankingPanel donors={mockRankedDonors} />
+            <LiveMatchRankingPanel request={request} fallbackDonors={mockRankedDonors} />
           </>
         )}
       </Card>
