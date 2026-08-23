@@ -11,9 +11,17 @@ const LEGEND_ORDER: RankedDonor['mapState'][] = ['ALERTED', 'ELIGIBLE', 'UNAVAIL
 
 export function DonorMap({ currentTier, donors }: { currentTier: EscalationTier; donors: RankedDonor[] }) {
   const currentRadiusKm = escalationTierRadiusKm[currentTier]
+  const inRangeCount = donors.filter((d) => d.distanceKm <= currentRadiusKm).length
 
   return (
     <div>
+      <div className="mb-2 flex items-center justify-between text-[12px]">
+        <span className="text-ink-secondary">
+          <span className="font-semibold tabular text-ink">{inRangeCount}</span> of {donors.length} known donors in
+          range
+        </span>
+        <span className="tabular text-ink-tertiary">{currentRadiusKm} km radius</span>
+      </div>
       <div className="relative aspect-[16/11] w-full overflow-hidden rounded-md border border-border-strong bg-surface-sunken">
         <div
           className="absolute inset-0 opacity-50"
@@ -39,13 +47,14 @@ export function DonorMap({ currentTier, donors }: { currentTier: EscalationTier;
                 strokeWidth={isCurrentRing ? 0.5 : 0.3}
                 strokeDasharray={isCurrentRing ? undefined : '1.5 1.5'}
                 opacity={isCurrentRing ? 0.7 : 0.5}
+                style={{ transition: 'rx 0.7s ease-out, ry 0.7s ease-out, opacity 0.4s ease-out' }}
               />
             )
           })}
         </svg>
 
         <div
-          className="absolute rounded-md bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold tabular text-ink-secondary shadow-xs"
+          className="absolute rounded-md bg-surface/90 px-1.5 py-0.5 text-[10px] font-semibold tabular text-ink-secondary shadow-xs transition-[left] duration-700 ease-out"
           style={{ left: `${50 + toPercent(currentRadiusKm)}%`, top: '50%' }}
         >
           {currentRadiusKm} km

@@ -14,6 +14,8 @@ interface RequestsContextValue {
   /** Non-terminal requests (SEARCHING / COVERED / CONFIRMED) — what "active" means across the dashboard. */
   activeRequests: EmergencyRequest[]
   createRequest: (input: CreateRequestInput) => EmergencyRequest
+  /** Generic patch — used by Demo Mode to fast-forward a request's escalation without waiting in real time. */
+  updateRequest: (id: string, patch: Partial<EmergencyRequest>) => void
 }
 
 const RequestsContext = createContext<RequestsContextValue | null>(null)
@@ -54,14 +56,18 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     [requests]
   )
 
+  const updateRequest = useCallback((id: string, patch: Partial<EmergencyRequest>) => {
+    setRequests((prev) => prev.map((req) => (req.id === id ? { ...req, ...patch } : req)))
+  }, [])
+
   const activeRequests = useMemo(
     () => requests.filter((r) => r.status !== 'FULFILLED' && r.status !== 'EXPIRED'),
     [requests]
   )
 
   const value = useMemo(
-    () => ({ requests, activeRequests, createRequest }),
-    [requests, activeRequests, createRequest]
+    () => ({ requests, activeRequests, createRequest, updateRequest }),
+    [requests, activeRequests, createRequest, updateRequest]
   )
 
   return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>

@@ -7,6 +7,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { EscalationTimeline } from '@/components/hospital/EscalationTimeline'
 import { DonorMap } from '@/components/hospital/DonorMap'
 import { LiveMatchRankingPanel } from '@/components/hospital/LiveMatchRankingPanel'
+import { DemoModeControls } from '@/components/hospital/DemoModeControls'
+import { HumanEscalationPanel } from '@/components/hospital/HumanEscalationPanel'
 import { useRequests } from '@/lib/context/RequestsContext'
 import { mockRankedDonors } from '@/lib/mockData'
 import { componentLabel, requestStatusHeadline, requestStatusTone } from '@/lib/domainMeta'
@@ -73,6 +75,10 @@ export function RequestDetailPage() {
           </div>
         </div>
       </Card>
+
+      {request.status === 'SEARCHING' && <DemoModeControls request={request} />}
+
+      {request.escalationTier === 'HUMAN' && <HumanEscalationPanel request={request} />}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="p-5">
