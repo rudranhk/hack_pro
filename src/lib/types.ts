@@ -63,6 +63,8 @@ export interface DonorAlert {
   urgency: Urgency
 }
 
+export type DonorMatchStatus = 'MATCHED' | 'SCREENING' | 'CONFIRMED' | 'EN_ROUTE' | 'ARRIVED' | 'DONATED'
+
 export interface EmergencyRequest {
   id: string
   hospitalName: string
