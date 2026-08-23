@@ -96,7 +96,7 @@ export function LiveMatchRankingPanel({
         )}
       </div>
 
-      <DonorRankingPanel donors={mode === 'live' && liveDonors ? liveDonors : fallbackDonors} />
+      <DonorRankingPanel request={request} donors={mode === 'live' && liveDonors ? liveDonors : fallbackDonors} />
     </div>
   )
 }

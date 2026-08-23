@@ -1,13 +1,50 @@
 import { useState } from 'react'
+import { SearchX } from 'lucide-react'
 import { DonorCard } from './DonorCard'
-import type { RankedDonor } from '@/lib/types'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
+import { useRequests } from '@/lib/context/RequestsContext'
+import { nextEscalationStep } from '@/lib/escalation'
+import type { EmergencyRequest, RankedDonor } from '@/lib/types'
 
-export function DonorRankingPanel({ donors }: { donors: RankedDonor[] }) {
+export function DonorRankingPanel({ request, donors }: { request: EmergencyRequest; donors: RankedDonor[] }) {
   const candidates = donors
     .filter((d) => d.mapState === 'ALERTED' || d.mapState === 'ELIGIBLE')
     .sort((a, b) => b.score - a.score)
 
   const [expandedId, setExpandedId] = useState<string | null>(candidates[0]?.id ?? null)
+  const { updateRequest } = useRequests()
+  const { toast } = useToast()
+
+  if (candidates.length === 0) {
+    const next = nextEscalationStep(request.escalationTier)
+    return (
+      <EmptyState
+        icon={SearchX}
+        title="No eligible donors found within the current radius."
+        description="No compatible, available donors have been reached yet at this escalation tier."
+        action={
+          next ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                updateRequest(request.id, { escalationTier: next.toTier, timeElapsedLabel: next.elapsedLabel })
+                toast({
+                  title: 'Search expanded',
+                  description: `Escalated to ${next.toTier} — still looking for compatible donors.`,
+                  tone: 'warning',
+                })
+              }}
+            >
+              Expand search
+            </Button>
+          ) : undefined
+        }
+      />
+    )
+  }
 
   return (
     <div>

@@ -2,52 +2,38 @@ import { FlaskConical, RotateCcw, UserCog, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { useRequests } from '@/lib/context/RequestsContext'
+import { ESCALATION_SEQUENCE, type EscalationStep } from '@/lib/escalation'
 import type { EmergencyRequest, EscalationTier } from '@/lib/types'
 
-interface TriggerStep {
-  fromTier: EscalationTier
-  toTier: EscalationTier
-  elapsedLabel: string
-  buttonLabel: string
-  toastTitle: string
-  toastDescription: string
-}
-
-const STEPS: TriggerStep[] = [
-  {
-    fromTier: 'NEARBY',
-    toTier: 'WIDE',
-    elapsedLabel: '03:00',
+const COPY: Record<EscalationTier, { buttonLabel: string; toastTitle: string; toastDescription: string }> = {
+  NEARBY: { buttonLabel: '', toastTitle: '', toastDescription: '' }, // never a `toTier`, unused
+  WIDE: {
     buttonLabel: 'Trigger +3 min',
     toastTitle: 'Escalated to WIDE',
     toastDescription: 'Search radius expanded to 15 km — no response yet.',
   },
-  {
-    fromTier: 'WIDE',
-    toTier: 'CITY',
-    elapsedLabel: '08:00',
+  CITY: {
     buttonLabel: 'Trigger +8 min',
     toastTitle: 'Escalated to CITY',
     toastDescription: 'Search radius expanded to 40 km — still searching.',
   },
-  {
-    fromTier: 'CITY',
-    toTier: 'HUMAN',
-    elapsedLabel: '15:00',
+  HUMAN: {
     buttonLabel: 'Trigger Human Escalation',
     toastTitle: 'Escalated to HUMAN',
     toastDescription: 'Automated matching exhausted — blood-bank coordinator notified.',
   },
-]
+  EXPIRED: { buttonLabel: '', toastTitle: '', toastDescription: '' }, // not reachable from Demo Mode's 3 buttons
+}
 
 /** Fast-forwards a live request through the escalation ladder — no real waiting required for a demo. */
 export function DemoModeControls({ request }: { request: EmergencyRequest }) {
   const { updateRequest } = useRequests()
   const { toast } = useToast()
 
-  const trigger = (step: TriggerStep) => {
+  const trigger = (step: EscalationStep) => {
+    const copy = COPY[step.toTier]
     updateRequest(request.id, { escalationTier: step.toTier, timeElapsedLabel: step.elapsedLabel })
-    toast({ title: step.toastTitle, description: step.toastDescription, tone: step.toTier === 'HUMAN' ? 'critical' : 'warning' })
+    toast({ title: copy.toastTitle, description: copy.toastDescription, tone: step.toTier === 'HUMAN' ? 'critical' : 'warning' })
   }
 
   const reset = () => {
@@ -71,7 +57,7 @@ export function DemoModeControls({ request }: { request: EmergencyRequest }) {
         real minutes.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {STEPS.map((step) => (
+        {ESCALATION_SEQUENCE.map((step) => (
           <Button
             key={step.toTier}
             variant="outline"
@@ -80,7 +66,7 @@ export function DemoModeControls({ request }: { request: EmergencyRequest }) {
             onClick={() => trigger(step)}
             leadingIcon={step.toTier === 'HUMAN' ? <UserCog size={13} /> : <Zap size={13} />}
           >
-            {step.buttonLabel}
+            {COPY[step.toTier].buttonLabel}
           </Button>
         ))}
       </div>

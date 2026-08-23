@@ -11,6 +11,7 @@ import { DemoModeControls } from '@/components/hospital/DemoModeControls'
 import { HumanEscalationPanel } from '@/components/hospital/HumanEscalationPanel'
 import { useRequests } from '@/lib/context/RequestsContext'
 import { mockRankedDonors } from '@/lib/mockData'
+import { compatibleDonorGroups } from '@/lib/compatibility'
 import { componentLabel, requestStatusHeadline, requestStatusTone } from '@/lib/domainMeta'
 
 export function RequestDetailPage() {
@@ -33,6 +34,11 @@ export function RequestDetailPage() {
 
   const resolved = request.status === 'COVERED' || request.status === 'CONFIRMED' || request.status === 'FULFILLED'
   const matchedDonor = mockRankedDonors.find((d) => d.mapState === 'MATCHED')
+
+  // Blood-type compatibility is a hard filter, applied before anything else touches the pool —
+  // a request can genuinely have zero eligible donors if the demo pool has no compatible match.
+  const allowedGroups = compatibleDonorGroups(request.bloodGroup, request.component)
+  const compatibleDonors = mockRankedDonors.filter((d) => allowedGroups.has(d.bloodGroup))
 
   return (
     <div className="flex flex-col gap-5">
@@ -87,7 +93,7 @@ export function RequestDetailPage() {
         </Card>
         <Card className="p-5">
           <h2 className="mb-4 text-[15px] font-semibold text-ink">Live donor map</h2>
-          <DonorMap currentTier={request.escalationTier} donors={mockRankedDonors} />
+          <DonorMap currentTier={request.escalationTier} donors={compatibleDonors} />
         </Card>
       </div>
 
@@ -117,7 +123,7 @@ export function RequestDetailPage() {
                 confirmed and matched.
               </div>
             )}
-            <LiveMatchRankingPanel request={request} fallbackDonors={mockRankedDonors} />
+            <LiveMatchRankingPanel request={request} fallbackDonors={compatibleDonors} />
           </>
         )}
       </Card>
