@@ -13,6 +13,9 @@ import { AnalyticsPage } from '@/pages/hospital/AnalyticsPage'
 import { ProfilePage } from '@/pages/hospital/ProfilePage'
 import { HospitalPrivacyPage } from '@/pages/hospital/PrivacyPage'
 import { DonorHomePage } from '@/pages/donor/DonorHomePage'
+import { DonorAlertPage } from '@/pages/donor/DonorAlertPage'
+import { DonorScreeningPage } from '@/pages/donor/DonorScreeningPage'
+import { DonorStatusPage } from '@/pages/donor/DonorStatusPage'
 import { DonorPrivacyPage } from '@/pages/donor/DonorPrivacyPage'
 
 function App() {
@@ -34,6 +37,9 @@ function App() {
       </Route>
 
       <Route path="/donor" element={<DonorHomePage />} />
+      <Route path="/donor/alert" element={<DonorAlertPage />} />
+      <Route path="/donor/screening" element={<DonorScreeningPage />} />
+      <Route path="/donor/status" element={<DonorStatusPage />} />
       <Route path="/donor/privacy" element={<DonorPrivacyPage />} />
 
       <Route path="*" element={<NotFoundPage />} />

@@ -42,6 +42,27 @@ export interface RankedDonor {
   scoreBreakdown: ScoreBreakdown
 }
 
+export type DonorEligibilityStatus = 'ELIGIBLE' | 'TEMPORARILY_INELIGIBLE'
+
+export interface DonorProfile {
+  bloodGroup: BloodGroup
+  eligibility: DonorEligibilityStatus
+  lastDonationLabel: string
+  nextEligibleLabel: string
+  defaultAvailable: boolean
+}
+
+/** What a donor sees on an emergency alert — logistics only, no patient/medical detail. */
+export interface DonorAlert {
+  requestId: string
+  bloodGroup: BloodGroup
+  component: Component
+  unitsNeeded: number
+  hospitalName: string
+  distanceKm: number
+  urgency: Urgency
+}
+
 export interface EmergencyRequest {
   id: string
   hospitalName: string

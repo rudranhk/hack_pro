@@ -1,4 +1,4 @@
-import type { EmergencyRequest, RankedDonor } from './types'
+import type { DonorAlert, DonorProfile, EmergencyRequest, RankedDonor } from './types'
 
 /** Synthetic demo data — stands in for the requests collection until Firebase lands. */
 export const mockRequests: EmergencyRequest[] = [
@@ -159,6 +159,26 @@ export const mockRankedDonors: RankedDonor[] = [
     scoreBreakdown: { compatibility: 28, proximity: 13, eligibilityMargin: 8, responseHistory: 4, recentActivity: 2 },
   },
 ]
+
+/** The signed-in donor for the demo — past their cooldown, so the accept → screening → status path is walkable. */
+export const mockDonorProfile: DonorProfile = {
+  bloodGroup: 'O-',
+  eligibility: 'ELIGIBLE',
+  lastDonationLabel: '3 months ago',
+  nextEligibleLabel: 'Eligible now — 90-day cooldown passed',
+  defaultAvailable: true,
+}
+
+/** The example alert from the spec: O-, Whole Blood, 2 units, City Hospital, 2.4 km, Urgent. */
+export const mockDonorAlert: DonorAlert = {
+  requestId: 'REQ-2048',
+  bloodGroup: 'O-',
+  component: 'WHOLE',
+  unitsNeeded: 2,
+  hospitalName: 'City Hospital',
+  distanceKm: 2.4,
+  urgency: 'URGENT',
+}
 
 /** Aggregate KPIs that don't yet have an underlying data model (donors land in a later phase) — static demo numbers. */
 export const mockOverviewMetrics = {
