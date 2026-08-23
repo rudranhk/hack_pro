@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { SearchX } from 'lucide-react'
 import { DonorCard } from './DonorCard'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -60,13 +61,19 @@ export function DonorRankingPanel({ request, donors }: { request: EmergencyReque
 
       <div className="flex flex-col gap-2">
         {candidates.map((donor, index) => (
-          <DonorCard
+          <motion.div
             key={donor.id}
-            donor={donor}
-            rank={index + 1}
-            expanded={expandedId === donor.id}
-            onToggle={() => setExpandedId((current) => (current === donor.id ? null : donor.id))}
-          />
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: index * 0.04, ease: 'easeOut' }}
+          >
+            <DonorCard
+              donor={donor}
+              rank={index + 1}
+              expanded={expandedId === donor.id}
+              onToggle={() => setExpandedId((current) => (current === donor.id ? null : donor.id))}
+            />
+          </motion.div>
         ))}
       </div>
     </div>

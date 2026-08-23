@@ -21,7 +21,16 @@ const QUESTIONS: Question[] = [
 
 type Phase = { kind: 'questions' } | { kind: 'cleared' } | { kind: 'deferred' }
 
-export function ScreeningFlow({ onConfirm, onExit }: { onConfirm: () => void; onExit: () => void }) {
+export function ScreeningFlow({
+  onConfirm,
+  onExit,
+  onDeferred,
+}: {
+  onConfirm: () => void
+  onExit: () => void
+  /** Fires the moment screening fails — the caller releases whatever the accept-time slot claim held. */
+  onDeferred?: () => void
+}) {
   const [step, setStep] = useState(0)
   const [phase, setPhase] = useState<Phase>({ kind: 'questions' })
 
@@ -29,6 +38,7 @@ export function ScreeningFlow({ onConfirm, onExit }: { onConfirm: () => void; on
     const failed = value !== QUESTIONS[step].safeAnswer
     if (failed) {
       setPhase({ kind: 'deferred' })
+      onDeferred?.()
       return
     }
     if (step === QUESTIONS.length - 1) {

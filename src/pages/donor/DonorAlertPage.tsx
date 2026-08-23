@@ -7,6 +7,8 @@ import { AlertCard } from '@/components/donor/AlertCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { useRequests } from '@/lib/context/RequestsContext'
+import { claimUnit } from '@/lib/donorSlotClaim'
 import { cn } from '@/lib/utils'
 import { mockDonorAlert } from '@/lib/mockData'
 
@@ -15,6 +17,7 @@ type Scenario = 'open' | 'already-covered'
 export function DonorAlertPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { requests, updateRequest } = useRequests()
   const [scenario, setScenario] = useState<Scenario>('open')
   const [covered, setCovered] = useState(false)
 
@@ -32,6 +35,10 @@ export function DonorAlertPage() {
       setCovered(true)
       return
     }
+    // Atomic slot claim happens at ACCEPT, before screening even runs — a failed
+    // screening (see DonorScreeningPage) releases it again.
+    const matchedRequest = requests.find((r) => r.id === mockDonorAlert.requestId)
+    if (matchedRequest) updateRequest(matchedRequest.id, claimUnit(matchedRequest))
     navigate('/donor/screening')
   }
 

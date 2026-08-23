@@ -6,6 +6,7 @@ import {
   Filter,
   HeartHandshake,
   Lock,
+  Milestone,
   Radar,
   ShieldCheck,
 } from 'lucide-react'
@@ -122,6 +123,24 @@ export function Landing() {
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-2xl px-5 py-12 sm:px-8">
+          <div className="flex items-start gap-3 rounded-lg border border-dashed border-border-strong px-5 py-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-sunken text-ink-tertiary">
+              <Milestone size={15} strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
+                Roadmap · Future: Organ Donation Network
+              </p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-ink-secondary">
+                Organ allocation remains within the official transplant network — this platform doesn't perform
+                it and never will pretend to. Future versions may support donor pledge discovery and hospital
+                handoff, nothing more.
+              </p>
             </div>
           </div>
         </section>
