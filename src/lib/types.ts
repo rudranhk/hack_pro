@@ -16,6 +16,32 @@ export type EscalationTier = 'NEARBY' | 'WIDE' | 'CITY' | 'HUMAN' | 'EXPIRED'
 /** Hospital-facing lifecycle of a request, independent of any single donor's own status. */
 export type RequestStatus = 'SEARCHING' | 'COVERED' | 'CONFIRMED' | 'FULFILLED' | 'EXPIRED'
 
+/** How a donor renders on the stylized map for a given request. */
+export type DonorMapState = 'ALERTED' | 'ELIGIBLE' | 'UNAVAILABLE' | 'MATCHED'
+
+export interface ScoreBreakdown {
+  compatibility: number
+  proximity: number
+  eligibilityMargin: number
+  responseHistory: number
+  recentActivity: number
+}
+
+export interface RankedDonor {
+  /** Anonymous identifier only — no name, surfaced until a confirmed acceptance. */
+  id: string
+  bloodGroup: BloodGroup
+  distanceKm: number
+  available: boolean
+  responseRate: number
+  lastActiveLabel: string
+  score: number
+  mapState: DonorMapState
+  /** Map position as percentages, purely for the stylized (non-real) map layout. */
+  mapPosition: { x: number; y: number }
+  scoreBreakdown: ScoreBreakdown
+}
+
 export interface EmergencyRequest {
   id: string
   hospitalName: string

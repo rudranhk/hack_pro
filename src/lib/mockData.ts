@@ -1,4 +1,4 @@
-import type { EmergencyRequest } from './types'
+import type { EmergencyRequest, RankedDonor } from './types'
 
 /** Synthetic demo data — stands in for the requests collection until Firebase lands. */
 export const mockRequests: EmergencyRequest[] = [
@@ -66,6 +66,97 @@ export const mockRequests: EmergencyRequest[] = [
     escalationTier: 'EXPIRED',
     timeElapsedLabel: '22:00',
     createdAtLabel: '2 days ago, 3:15 PM',
+  },
+]
+
+/**
+ * Synthetic donor pool for the live request screen. In this prototype the same pool is shown for
+ * any request being viewed — a real backend would filter/rank per request's blood group and location.
+ */
+export const mockRankedDonors: RankedDonor[] = [
+  {
+    id: 'G840',
+    bloodGroup: 'O-',
+    distanceKm: 1.2,
+    available: true,
+    responseRate: 0.9,
+    lastActiveLabel: '20m ago',
+    score: 88,
+    mapState: 'MATCHED',
+    mapPosition: { x: 46, y: 52 },
+    scoreBreakdown: { compatibility: 37, proximity: 24, eligibilityMargin: 14, responseHistory: 8, recentActivity: 5 },
+  },
+  {
+    id: 'A284',
+    bloodGroup: 'O-',
+    distanceKm: 1.8,
+    available: true,
+    responseRate: 0.82,
+    lastActiveLabel: '3h ago',
+    score: 92,
+    mapState: 'ALERTED',
+    mapPosition: { x: 38, y: 42 },
+    scoreBreakdown: { compatibility: 38, proximity: 23, eligibilityMargin: 14, responseHistory: 11, recentActivity: 6 },
+  },
+  {
+    id: 'B117',
+    bloodGroup: 'O-',
+    distanceKm: 4.6,
+    available: true,
+    responseRate: 0.74,
+    lastActiveLabel: '1d ago',
+    score: 85,
+    mapState: 'ALERTED',
+    mapPosition: { x: 66, y: 32 },
+    scoreBreakdown: { compatibility: 36, proximity: 20, eligibilityMargin: 13, responseHistory: 10, recentActivity: 6 },
+  },
+  {
+    id: 'C905',
+    bloodGroup: 'O-',
+    distanceKm: 3.9,
+    available: true,
+    responseRate: 0.65,
+    lastActiveLabel: '2d ago',
+    score: 78,
+    mapState: 'ALERTED',
+    mapPosition: { x: 30, y: 64 },
+    scoreBreakdown: { compatibility: 34, proximity: 17, eligibilityMargin: 12, responseHistory: 9, recentActivity: 6 },
+  },
+  {
+    id: 'F701',
+    bloodGroup: 'O-',
+    distanceKm: 2.6,
+    available: false,
+    responseRate: 0.3,
+    lastActiveLabel: '3w ago',
+    score: 40,
+    mapState: 'UNAVAILABLE',
+    mapPosition: { x: 24, y: 26 },
+    scoreBreakdown: { compatibility: 30, proximity: 6, eligibilityMargin: 2, responseHistory: 1, recentActivity: 1 },
+  },
+  {
+    id: 'D562',
+    bloodGroup: 'O-',
+    distanceKm: 11.5,
+    available: true,
+    responseRate: 0.51,
+    lastActiveLabel: '5d ago',
+    score: 61,
+    mapState: 'ELIGIBLE',
+    mapPosition: { x: 76, y: 64 },
+    scoreBreakdown: { compatibility: 30, proximity: 12, eligibilityMargin: 10, responseHistory: 6, recentActivity: 3 },
+  },
+  {
+    id: 'E238',
+    bloodGroup: 'O-',
+    distanceKm: 27,
+    available: true,
+    responseRate: 0.4,
+    lastActiveLabel: '6d ago',
+    score: 55,
+    mapState: 'ELIGIBLE',
+    mapPosition: { x: 84, y: 40 },
+    scoreBreakdown: { compatibility: 28, proximity: 13, eligibilityMargin: 8, responseHistory: 4, recentActivity: 2 },
   },
 ]
 
