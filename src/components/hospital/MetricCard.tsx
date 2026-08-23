@@ -8,7 +8,7 @@ export interface MetricCardProps {
   label: string
   value: ReactNode
   caption?: string
-  tone?: 'neutral' | 'critical' | 'success' | 'info'
+  tone?: 'neutral' | 'critical' | 'success' | 'info' | 'warning'
 }
 
 const toneClasses: Record<NonNullable<MetricCardProps['tone']>, string> = {
@@ -16,6 +16,7 @@ const toneClasses: Record<NonNullable<MetricCardProps['tone']>, string> = {
   critical: 'bg-critical-subtle text-critical',
   success: 'bg-success-subtle text-success',
   info: 'bg-info-subtle text-info',
+  warning: 'bg-warning-subtle text-warning',
 }
 
 export function MetricCard({ icon: Icon, label, value, caption, tone = 'neutral' }: MetricCardProps) {

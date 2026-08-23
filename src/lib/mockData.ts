@@ -67,6 +67,32 @@ export const mockRequests: EmergencyRequest[] = [
     timeElapsedLabel: '22:00',
     createdAtLabel: '2 days ago, 3:15 PM',
   },
+  {
+    id: 'REQ-2044',
+    hospitalName: 'City Hospital',
+    bloodGroup: 'A-',
+    component: 'WHOLE',
+    unitsNeeded: 1,
+    unitsSecured: 0,
+    urgency: 'URGENT',
+    status: 'SEARCHING',
+    escalationTier: 'NEARBY',
+    timeElapsedLabel: '02:10',
+    createdAtLabel: 'Today, 1:30 PM',
+  },
+  {
+    id: 'REQ-2046',
+    hospitalName: 'City Hospital',
+    bloodGroup: 'B+',
+    component: 'PLATELET',
+    unitsNeeded: 2,
+    unitsSecured: 1,
+    urgency: 'STANDARD',
+    status: 'SEARCHING',
+    escalationTier: 'NEARBY',
+    timeElapsedLabel: '05:40',
+    createdAtLabel: 'Today, 9:05 AM',
+  },
 ]
 
 /**

@@ -42,6 +42,62 @@ export interface RankedDonor {
   scoreBreakdown: ScoreBreakdown
 }
 
+// ---- Donor Network (hospital-facing donor pool view) ----
+
+export type NetworkAvailability = 'AVAILABLE' | 'RESPONDING' | 'UNAVAILABLE'
+export type MatchReadiness = 'EXCELLENT' | 'GOOD' | 'FAIR'
+
+export interface NetworkDonor {
+  /** Anonymous identifier only — this is an operational view, not a directory. */
+  id: string
+  bloodGroup: BloodGroup
+  distanceKm: number
+  availability: NetworkAvailability
+  responseRate: number
+  lastActiveLabel: string
+  score: number
+  scoreBreakdown: ScoreBreakdown
+  eligible: boolean
+  /** Which components this donor is eligible to give — drives the Component filter. */
+  components: Component[]
+}
+
+// ---- Blood Stock ----
+
+export type StockStatus = 'HEALTHY' | 'LOW' | 'CRITICAL'
+
+export interface StockEntry {
+  bloodGroup: BloodGroup
+  component: Component
+  available: number
+  reserved: number
+  criticalThreshold: number
+}
+
+// ---- Live Matches (hospital-facing donor-commitment tracking) ----
+
+/** The hospital only ever sees a donor after screening — no SCREENING stage here, unlike the donor's own status timeline. */
+export type MatchStatus = 'MATCHED' | 'CONFIRMED' | 'EN_ROUTE' | 'ARRIVED' | 'DONATED'
+
+export interface MatchTimelineEvent {
+  timeLabel: string
+  label: string
+}
+
+export interface LiveMatch {
+  requestId: string
+  bloodGroup: BloodGroup
+  component: Component
+  unitsNeeded: number
+  unitsSecured: number
+  donorId: string
+  distanceKm: number
+  etaMinutes: number
+  status: MatchStatus
+  timeline: MatchTimelineEvent[]
+  mapPosition: { x: number; y: number }
+}
+
 export type DonorEligibilityStatus = 'ELIGIBLE' | 'TEMPORARILY_INELIGIBLE'
 
 export interface DonorProfile {
