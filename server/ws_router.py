@@ -1,67 +1,43 @@
-"""
-Real-time push channel — genuinely functional, but the frontend demo does not
-depend on it by default (kept demo-safe per the "self-contained UI" decision).
-A hospital-side event (e.g. a donor accepting) can be broadcast to anyone
-subscribed to that request's channel.
-"""
-
-import json
+"""Single-process, room-scoped event invalidations. Durable snapshots live in SQLite."""
+import asyncio
+from collections import defaultdict
+from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
 
-router = APIRouter(tags=["realtime"])
+from config import settings
 
-
-class _ConnectionManager:
-    def __init__(self) -> None:
-        self.connections: dict[str, list[WebSocket]] = {}
-
-    async def connect(self, request_id: str, ws: WebSocket) -> None:
-        await ws.accept()
-        self.connections.setdefault(request_id, []).append(ws)
-
-    def disconnect(self, request_id: str, ws: WebSocket) -> None:
-        peers = self.connections.get(request_id, [])
-        if ws in peers:
-            peers.remove(ws)
-        if not peers:
-            self.connections.pop(request_id, None)
-
-    async def broadcast(self, request_id: str, message: dict) -> int:
-        peers = self.connections.get(request_id, [])
-        payload = json.dumps(message)
-        for peer in list(peers):
-            try:
-                await peer.send_text(payload)
-            except Exception:  # noqa: BLE001 — a dead socket shouldn't break the broadcast
-                self.disconnect(request_id, peer)
-        return len(peers)
+router = APIRouter()
+channels = defaultdict(set)
 
 
-manager = _ConnectionManager()
+async def publish(room, event, request_ids=()):
+    keys = {(str(room), "workspace"), *((str(room), rid) for rid in request_ids)}
+    async def send(key, peer):
+        try:
+            await asyncio.wait_for(peer.send_json({"event": event, "requests": list(request_ids)}), 2)
+        except (RuntimeError, OSError, asyncio.TimeoutError):
+            channels.get(key, set()).discard(peer)
+    await asyncio.gather(*(send(key, peer) for key in keys for peer in tuple(channels.get(key, ()))))
 
 
-@router.websocket("/ws/requests/{request_id}")
-async def request_channel(websocket: WebSocket, request_id: str) -> None:
-    await manager.connect(request_id, websocket)
+@router.websocket("/ws/requests/{channel}")
+async def request_channel(ws: WebSocket, channel: str, room: UUID):
+    origin = ws.headers.get("origin")
+    if origin and origin not in settings.cors_origins:
+        await ws.close(code=1008)
+        return
+    key = (str(room), channel)
+    await ws.accept()
+    channels[key].add(ws)
     try:
+        await ws.send_json({"event": "ready"})
         while True:
-            # The frontend doesn't need to send anything — this just keeps the socket open
-            # and lets the server push events. Echo pings back so clients can health-check.
-            data = await websocket.receive_text()
-            if data == "ping":
-                await websocket.send_text("pong")
-    except WebSocketDisconnect:
-        manager.disconnect(request_id, websocket)
-
-
-class BroadcastPayload(BaseModel):
-    event: str
-    data: dict = {}
-
-
-@router.post("/api/requests/{request_id}/broadcast")
-async def broadcast_event(request_id: str, payload: BroadcastPayload) -> dict:
-    delivered = await manager.broadcast(request_id, {"event": payload.event, "data": payload.data})
-    return {"delivered_to": delivered}
+            if await ws.receive_text() == "ping":
+                await ws.send_text("pong")
+    except (WebSocketDisconnect, OSError, RuntimeError):
+        pass
+    finally:
+        channels[key].discard(ws)
+        if not channels[key]:
+            del channels[key]

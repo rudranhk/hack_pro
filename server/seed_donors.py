@@ -7,8 +7,7 @@ embeds; the structured facts travel alongside as Qdrant payload.
 
 from dataclasses import dataclass
 
-from embeddings import embed_batch
-from vector_store import upsert_donors
+from vector_store import ensure_profiles
 
 
 @dataclass
@@ -23,12 +22,13 @@ class SeedDonor:
 
     @property
     def profile_text(self) -> str:
-        availability = "currently available" if self.available else "currently unavailable"
-        return (
-            f"Blood donor, group {self.bloodGroup}, located {self.distanceKm} km away, {availability}. "
-            f"Historical response rate {round(self.responseRate * 100)} percent to emergency alerts. "
-            f"Last active on the platform {self.lastActiveLabel}."
-        )
+        # Fictional logistics notes are the only input to semantic similarity.
+        notes = ("I can usually travel after my evening shift.",
+                 "I use the city bus and can meet at the transit stop.",
+                 "Please send directions to the collection entrance.",
+                 "I can arrange a ride during daytime hours.")
+        return f"Synthetic donor {self.id}. {notes[(self.id-1) % len(notes)]}"
+
 
 
 DEMO_DONORS: list[SeedDonor] = [
@@ -52,20 +52,8 @@ DEMO_DONORS: list[SeedDonor] = [
 
 
 def seed() -> int:
-    vectors = embed_batch([d.profile_text for d in DEMO_DONORS])
-    points = [
-        {
-            "id": donor.id,
-            "vector": vector,
-            "payload": {
-                "bloodGroup": donor.bloodGroup,
-                "distanceKm": donor.distanceKm,
-                "available": donor.available,
-                "responseRate": donor.responseRate,
-                "lastActiveDays": donor.lastActiveDays,
-                "lastActiveLabel": donor.lastActiveLabel,
-            },
-        }
-        for donor, vector in zip(DEMO_DONORS, vectors)
-    ]
-    return upsert_donors(points)
+    return ensure_profiles(DEMO_DONORS)
+
+
+if __name__ == "__main__":
+    print(f"Indexed {seed()} synthetic donor profiles.")

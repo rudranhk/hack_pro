@@ -1,73 +1,19 @@
-# BloodLink matching service
+# Blood Buddy matching service
 
-A real FastAPI backend: Gemini embeddings + Qdrant Cloud vector search for
-donor matching, plus a WebSocket channel for push-style events. This exists
-alongside the frontend prototype (which stays fully functional on its own
-mock data) — the frontend's "Live match" toggle calls this service when it's
-running and configured; otherwise the UI just keeps using demo data.
+Run the two services using the [project guide](../README.md). FastAPI owns request lifecycles, donor state and invitation transitions. SQLite stores one database per demo workspace in gitignored `server/data/`. Set `BLOOD_BUDDY_DATA` to change this directory.
 
-## Why a vector DB, if the ranking is meant to be explainable?
+## Optional cloud retrieval
 
-Vector search (Gemini embedding + Qdrant cosine similarity) is used to
-**retrieve and pre-order candidates** from the donor pool — the part of the
-problem that's genuinely a similarity search. The score actually **shown to
-the hospital** is still the same transparent, weighted formula as the
-frontend (`compatibility` / `proximity` / `eligibility margin` / `response
-history` / `recent activity`, see `scoring.py`) — never a raw cosine number.
-Blood-type compatibility is a hard filter (`compatibility.py`), not something
-left to similarity. See the comment at the top of `scoring.py` for the
-reasoning.
+Copy `.env.example` to `.env` inside `server/`. Set `GEMINI_API_KEY`, `QDRANT_URL` and `QDRANT_API_KEY` there. Restart FastAPI. Keep server credentials out of Vite environment variables.
 
-## Setup
+Use a dedicated demo collection. The default model is `gemini-embedding-2` with 768 output dimensions. The retired `text-embedding-004` model cannot serve new embedding requests. Changes to model or dimensions should use a fresh collection. Blood Buddy checks the vector schema, indexes the group and profile version fields, and uses stable donor IDs to avoid duplicate records. Existing unrecognized profiles at those IDs cause a visible fallback.
 
-```bash
-cd server
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
+A logistics preference on an eligible request, or an explicit cloud preview, indexes the synthetic fixture pool. To warm the collection before judging, run `.\.venv\Scripts\python seed_donors.py` from this directory. Profile and query embeddings use the same model and dimensions. SQLite supplies the current eligible ID set. Qdrant applies those IDs and the blood-group filter, then the server ranks the returned donors using the displayed score factors. Similarity breaks score ties. A provider failure records the fallback reason with the request. This is retrieval and scoring without a generative answer stage.
 
-pip install -r requirements.txt
-copy .env.example .env        # Windows; `cp` on macOS/Linux
-```
+## API and events
 
-Edit `.env` and fill in:
-- `GEMINI_API_KEY` — from https://aistudio.google.com/apikey
-- `QDRANT_URL` and `QDRANT_API_KEY` — from your Qdrant Cloud cluster
+Interactive endpoint documentation is available at [local FastAPI docs](http://127.0.0.1:8000/docs). Workspace operations take a UUID `room` query parameter. The request creation token makes retries idempotent. Transitions serialize capacity and donor-commitment checks in a SQLite write transaction. Request decisions and scheduler configuration are documented in the [technical evaluation](../HACKATHON.md). The hospital records collections once and each collection requires a new external review before the donor can match again.
 
-## Run
+Subscribe to `/ws/requests/{requestId}?room={uuid}` for a request, or use `workspace` as the channel for the dashboard and donor inbox. Sockets deliver event names and affected request IDs. Clients load the latest snapshot on connection, after changes and after reconnect. A heartbeat checks the connection and a periodic read also catches missed events.
 
-```bash
-uvicorn main:app --reload --port 8000
-```
-
-Then, once:
-
-```bash
-curl -X POST http://localhost:8000/api/admin/seed
-```
-
-This embeds and upserts the demo donor pool (`seed_donors.py`) into your
-Qdrant collection. Re-run it any time you change the seed data.
-
-## Try it
-
-```bash
-curl http://localhost:8000/api/health
-
-curl -X POST http://localhost:8000/api/requests/match \
-  -H "Content-Type: application/json" \
-  -d '{"bloodGroup":"O-","component":"WHOLE","unitsNeeded":2,"urgency":"CRITICAL","topK":5}'
-```
-
-## Endpoints
-
-- `GET /api/health` — reports whether Gemini/Qdrant keys are configured
-- `POST /api/admin/seed` — embeds and upserts the demo donor pool
-- `POST /api/requests/match` — the real matching call (blood-type filter → vector search → explainable scoring)
-- `WS /ws/requests/{request_id}` — subscribe to push events for a request
-- `POST /api/requests/{request_id}/broadcast` — manually fire an event to that channel (for testing/demoing the socket)
-
-## Without keys
-
-Every endpoint that needs Gemini/Qdrant returns a clear `503` explaining
-what's missing, rather than failing silently or pretending to work.
+This local, single-worker demo exposes interchangeable synthetic roles on the same machine. It stores no real hospital credentials, donor contact information or patient records. Production identity management, clinical verification and external push delivery are outside the local deployment.

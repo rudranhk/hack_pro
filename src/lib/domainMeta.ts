@@ -48,6 +48,8 @@ export const escalationTierTone: Record<EscalationTier, BadgeTone> = {
 }
 
 export const requestStatusLabel: Record<RequestStatus, string> = {
+  CLOSED: 'Closed',
+  CANCELLED: 'Cancelled',
   SEARCHING: 'Searching',
   COVERED: 'Covered',
   CONFIRMED: 'Confirmed',
@@ -56,6 +58,8 @@ export const requestStatusLabel: Record<RequestStatus, string> = {
 }
 
 export const requestStatusTone: Record<RequestStatus, BadgeTone> = {
+  CLOSED: 'neutral',
+  CANCELLED: 'warning',
   SEARCHING: 'info',
   COVERED: 'success',
   CONFIRMED: 'success',
@@ -65,6 +69,8 @@ export const requestStatusTone: Record<RequestStatus, BadgeTone> = {
 
 /** The large headline shown on the live request screen, distinct from the compact table-badge label above. */
 export const requestStatusHeadline: Record<RequestStatus, string> = {
+  CLOSED: 'Closed by hospital',
+  CANCELLED: 'Request cancelled',
   SEARCHING: 'Searching for donors',
   COVERED: 'All units secured',
   CONFIRMED: 'Donor confirmed',

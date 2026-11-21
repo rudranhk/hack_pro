@@ -5,7 +5,8 @@ import { Tabs } from '@/components/ui/Tabs'
 import { buttonClasses } from '@/components/ui/Button'
 import { StockGroupCard } from '@/components/hospital/stock/StockGroupCard'
 import { StockTable } from '@/components/hospital/stock/StockTable'
-import { mockBloodStock, stockLastUpdatedLabel } from '@/lib/mockBloodStock'
+import { StockForecast } from '@/components/hospital/stock/StockForecast'
+import { useRequests } from '@/lib/context/RequestsContext'
 import { componentLabel, stockStatusFor } from '@/lib/domainMeta'
 import type { Component } from '@/lib/types'
 
@@ -18,7 +19,9 @@ const TAB_OPTIONS: { value: Component; label: string }[] = [
 export function BloodStockPage() {
   const [component, setComponent] = useState<Component>('WHOLE')
 
-  const entries = useMemo(() => mockBloodStock.filter((e) => e.component === component), [component])
+  const {data, connection} = useRequests()
+  const entries = useMemo(() => (data?.stock ?? []).filter(e => e.component === component)
+    .map(e => ({...e, reserved:0, criticalThreshold:2})), [component, data])
   const criticalEntries = useMemo(
     () => entries.filter((e) => stockStatusFor(e.available, e.criticalThreshold) === 'CRITICAL'),
     [entries]
@@ -29,11 +32,11 @@ export function BloodStockPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-[18px] font-semibold text-ink">Blood Stock</h1>
-          <p className="mt-1 text-[13px] text-ink-secondary">Current inventory across blood groups and components.</p>
+          <p className="mt-1 text-[13px] text-ink-secondary">Synthetic opening stock adjusted for recorded collections and issued units.</p>
         </div>
         <span className="mt-1 flex items-center gap-1.5 text-[12px] text-ink-tertiary">
           <Clock size={13} />
-          Last updated {stockLastUpdatedLabel}
+          {connection} inventory
         </span>
       </div>
 
@@ -61,7 +64,7 @@ export function BloodStockPage() {
               </div>
             </div>
             <Link
-              to="/hospital/requests/new"
+              to={`/hospital/requests/new?group=${encodeURIComponent(entry.bloodGroup)}&component=${entry.component}`}
               className={buttonClasses({ variant: 'danger', size: 'sm', className: 'shrink-0' })}
             >
               <Plus size={14} className="-ml-0.5" />
@@ -72,6 +75,7 @@ export function BloodStockPage() {
       ))}
 
       <StockTable entries={entries} />
+      <StockForecast balances={entries} />
     </div>
   )
 }

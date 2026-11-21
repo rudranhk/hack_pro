@@ -1,5 +1,7 @@
+import { BrandHomeLink } from '@/components/layout/BrandHomeLink'
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Droplet, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { hospitalNavItems } from '@/lib/navigation'
 
@@ -9,6 +11,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
+  const panel = useRef<HTMLElement>(null)
+  useEffect(()=>{
+    if (!mobileOpen) return
+    const previous=document.activeElement as HTMLElement|null
+    const items=Array.from(panel.current?.querySelectorAll<HTMLElement>('a,button') ?? [])
+    items[0]?.focus()
+    const handle=(e:KeyboardEvent)=>{
+      if (e.key==='Escape') {e.preventDefault();onCloseMobile()}
+      if (e.key==='Tab' && document.activeElement===items[e.shiftKey?0:items.length-1]) {
+        e.preventDefault();items[e.shiftKey?items.length-1:0]?.focus()
+      }
+    }
+    document.addEventListener('keydown',handle)
+    return ()=>{document.removeEventListener('keydown',handle);previous?.focus()}
+  },[mobileOpen,onCloseMobile])
   return (
     <>
       {/* Mobile scrim */}
@@ -20,22 +37,19 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
         />
       )}
 
-      <aside
+      <aside ref={panel} id="hospital-navigation" aria-label="Hospital navigation"
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-border bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full lg:visible'
         )}
       >
         <div className="flex h-16 items-center justify-between gap-2 border-b border-border px-5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-white">
-              <Droplet size={17} fill="currentColor" strokeWidth={0} />
-            </span>
+          <BrandHomeLink>
             <div className="leading-tight">
-              <p className="text-[14px] font-semibold text-ink">BloodLink</p>
+              <p className="text-[14px] font-semibold text-ink">Blood Buddy</p>
               <p className="text-[11px] text-ink-tertiary">Emergency network</p>
             </div>
-          </div>
+          </BrandHomeLink>
           <button
             onClick={onCloseMobile}
             aria-label="Close menu"
@@ -75,9 +89,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
         <div className="border-t border-border p-4">
           <div className="rounded-md bg-surface-sunken px-3 py-2.5">
-            <p className="text-[12px] font-medium text-ink">Demo Mode available</p>
+            <p className="text-[12px] font-medium text-ink">Synthetic workspace</p>
             <p className="mt-0.5 text-[11px] text-ink-tertiary">
-              Fast-forward escalation from any live request.
+              Start a fresh critical O− demonstration from Overview.
             </p>
           </div>
         </div>

@@ -1,20 +1,18 @@
 import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { DonorMatchStatus } from '@/lib/types'
+import type { OfferStatus } from '@/lib/api/workspace'
 
-const STAGE_ORDER: DonorMatchStatus[] = ['MATCHED', 'SCREENING', 'CONFIRMED', 'EN_ROUTE', 'ARRIVED', 'DONATED']
+const STAGE_ORDER: OfferStatus[] = ['ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'DONATED']
 
-const STAGES: { status: DonorMatchStatus; title: string; description: string }[] = [
-  { status: 'MATCHED', title: 'Matched', description: 'You accepted this request' },
-  { status: 'SCREENING', title: 'Screening', description: 'Quick eligibility check' },
-  { status: 'CONFIRMED', title: 'Confirmed', description: 'Donation confirmed' },
+const STAGES: { status: OfferStatus; title: string; description: string }[] = [
+  { status: 'ACCEPTED', title: 'Accepted', description: 'One unit committed to this request' },
   { status: 'EN_ROUTE', title: 'En route', description: 'Heading to the hospital' },
   { status: 'ARRIVED', title: 'Arrived', description: 'Checked in at the hospital' },
-  { status: 'DONATED', title: 'Donated', description: 'Donation complete' },
+  { status: 'DONATED', title: 'Donated', description: 'Hospital recorded collection' },
 ]
 
-export function StatusTimeline({ current }: { current: DonorMatchStatus }) {
+export function StatusTimeline({ current }: { current: OfferStatus }) {
   const currentIndex = STAGE_ORDER.indexOf(current)
 
   return (

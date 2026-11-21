@@ -1,115 +1,38 @@
-import { useMemo, useState } from 'react'
-import { Search, Users } from 'lucide-react'
-import { MetricCard } from '@/components/hospital/MetricCard'
+import { useState } from 'react'
+import { Badge } from '@/components/ui/Badge'
+import { Card } from '@/components/ui/Card'
 import { Input, Select } from '@/components/ui'
-import { DonorNetworkTable } from '@/components/hospital/network/DonorNetworkTable'
-import { DonorDetailDrawer } from '@/components/hospital/network/DonorDetailDrawer'
-import { donorNetworkMetrics, mockNetworkDonors } from '@/lib/mockDonorNetwork'
-import type { BloodGroup, Component, NetworkAvailability, NetworkDonor } from '@/lib/types'
-
-const BLOOD_GROUPS: BloodGroup[] = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+']
+import { useRequests } from '@/lib/context/RequestsContext'
+import { componentLabel } from '@/lib/domainMeta'
+import { donorUrl } from '@/lib/api/workspace'
 
 export function DonorNetworkPage() {
-  const [search, setSearch] = useState('')
-  const [bloodGroup, setBloodGroup] = useState<BloodGroup | 'ALL'>('ALL')
-  const [distance, setDistance] = useState<'ANY' | '2' | '5' | '10' | '25'>('ANY')
-  const [availability, setAvailability] = useState<NetworkAvailability | 'ALL'>('ALL')
-  const [component, setComponent] = useState<Component | 'ALL'>('ALL')
-  const [minResponse, setMinResponse] = useState<'ALL' | '80' | '60' | 'BELOW60'>('ALL')
-  const [selected, setSelected] = useState<NetworkDonor | null>(null)
-
-  const filtered = useMemo(() => {
-    return mockNetworkDonors.filter((d) => {
-      if (search && !d.id.toLowerCase().includes(search.toLowerCase().replace('#', ''))) return false
-      if (bloodGroup !== 'ALL' && d.bloodGroup !== bloodGroup) return false
-      if (distance !== 'ANY' && d.distanceKm > Number(distance)) return false
-      if (availability !== 'ALL' && d.availability !== availability) return false
-      if (component !== 'ALL' && !d.components.includes(component)) return false
-      if (minResponse === '80' && d.responseRate < 0.8) return false
-      if (minResponse === '60' && d.responseRate < 0.6) return false
-      if (minResponse === 'BELOW60' && d.responseRate >= 0.6) return false
-      return true
-    })
-  }, [search, bloodGroup, distance, availability, component, minResponse])
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[18px] font-semibold text-ink">Donor Network</h1>
-          <p className="mt-1 text-[13px] text-ink-secondary">Eligible donors available for emergency requests.</p>
-        </div>
-        <span className="mt-1 flex items-center gap-1.5 rounded-full border border-success-border bg-success-subtle px-3 py-1 text-[12px] font-medium text-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          Network healthy
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Users} label="Available now" value={donorNetworkMetrics.availableNow} tone="success" />
-        <MetricCard icon={Users} label="Eligible nearby" value={donorNetworkMetrics.eligibleNearby} tone="info" />
-        <MetricCard icon={Users} label="Currently responding" value={donorNetworkMetrics.currentlyResponding} tone="neutral" />
-        <MetricCard icon={Users} label="Active commitments" value={donorNetworkMetrics.activeCommitments} tone="critical" />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <Input
-          placeholder="Search donors..."
-          leadingIcon={<Search size={15} />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
-        <div className="flex flex-wrap gap-2.5">
-          <div className="w-[150px]">
-            <Select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value as BloodGroup | 'ALL')}>
-              <option value="ALL">All blood groups</option>
-              {BLOOD_GROUPS.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="w-[150px]">
-            <Select value={distance} onChange={(e) => setDistance(e.target.value as typeof distance)}>
-              <option value="ANY">Any distance</option>
-              <option value="2">Within 2 km</option>
-              <option value="5">Within 5 km</option>
-              <option value="10">Within 10 km</option>
-              <option value="25">Within 25 km</option>
-            </Select>
-          </div>
-          <div className="w-[150px]">
-            <Select value={availability} onChange={(e) => setAvailability(e.target.value as NetworkAvailability | 'ALL')}>
-              <option value="ALL">All availability</option>
-              <option value="AVAILABLE">Available</option>
-              <option value="RESPONDING">Responding</option>
-              <option value="UNAVAILABLE">Unavailable</option>
-            </Select>
-          </div>
-          <div className="w-[150px]">
-            <Select value={component} onChange={(e) => setComponent(e.target.value as Component | 'ALL')}>
-              <option value="ALL">All components</option>
-              <option value="WHOLE">Whole Blood</option>
-              <option value="PLATELET">Platelet</option>
-              <option value="PLASMA">Plasma</option>
-            </Select>
-          </div>
-          <div className="w-[150px]">
-            <Select value={minResponse} onChange={(e) => setMinResponse(e.target.value as typeof minResponse)}>
-              <option value="ALL">Any response score</option>
-              <option value="80">80%+</option>
-              <option value="60">60%+</option>
-              <option value="BELOW60">Below 60%</option>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      <DonorNetworkTable donors={filtered} onSelect={setSelected} />
-
-      <DonorDetailDrawer donor={selected} onClose={() => setSelected(null)} />
-    </div>
-  )
+  const {data} = useRequests()
+  const [query, setQuery] = useState('')
+  const [group, setGroup] = useState('')
+  const [component, setComponent] = useState('')
+  const [availability, setAvailability] = useState('')
+  const [radius, setRadius] = useState('40')
+  const [response, setResponse] = useState('0')
+  if (!data) return null
+  const busy = new Set(data.offers.filter(o => ['ACCEPTED','EN_ROUTE','ARRIVED'].includes(o.status)).map(o => o.donorId))
+  const state = (d: typeof data.donors[number]) => busy.has(d.id) ? 'Committed' : !d.eligible ? 'Pending review' : d.available ? 'Available' : 'Paused'
+  const donors = data.donors.filter(d => (!group || d.bloodGroup === group) && d.distanceKm <= Number(radius)
+    && d.responseRate >= Number(response) && (!component || d.components.some(c => c === component))
+    && (!availability || availability === state(d)) && String(d.id).includes(query.replace('#','').trim()))
+  return <div className="space-y-4"><h2 className="text-lg font-semibold">Donor network</h2>
+    <p className="text-sm text-ink-secondary">{data.donors.length} synthetic records · {busy.size} active commitments</p>
+    <div className="grid gap-2 sm:grid-cols-3"><Input aria-label="Search donor ID" placeholder="Search donor ID" value={query} onChange={e => setQuery(e.target.value)}/>
+      <Select aria-label="Blood group" value={group} onChange={e => setGroup(e.target.value)}><option value="">All groups</option>{[...new Set(data.donors.map(d => d.bloodGroup))].map(g => <option key={g}>{g}</option>)}</Select>
+      <Select aria-label="Component" value={component} onChange={e => setComponent(e.target.value)}><option value="">All components</option>{Object.entries(componentLabel).map(([c,label]) => <option key={c} value={c}>{label}</option>)}</Select>
+      <Select aria-label="Availability" value={availability} onChange={e => setAvailability(e.target.value)}><option value="">All availability</option>{['Available','Paused','Committed','Pending review'].map(s => <option key={s}>{s}</option>)}</Select>
+      <Select aria-label="Radius" value={radius} onChange={e => setRadius(e.target.value)}>{[2,5,15,40].map(k => <option key={k} value={k}>Within {k} km</option>)}</Select>
+      <Select aria-label="Historical response rate" value={response} onChange={e => setResponse(e.target.value)}><option value="0">Any response rate</option><option value=".6">60% or higher</option><option value=".8">80% or higher</option></Select></div>
+    {donors.length === 0 && <Card className="p-5">No donors match these filters.</Card>}
+    <div className="grid gap-3 sm:grid-cols-2">{donors.map(d => <Card key={d.id} className="space-y-2 p-4"><div className="flex justify-between"><strong>Donor #{d.id} · {d.bloodGroup}</strong><Badge>{state(d)}</Badge></div>
+      <p className="text-sm">{d.distanceKm} km · {Math.round(d.responseRate * 100)}% historical response</p>
+      <details className="text-sm"><summary className="cursor-pointer">Coordination record</summary>
+        <p className="my-2">{d.components.map(c => componentLabel[c]).join(', ')} · {d.eligible ? 'Synthetic review on file' : 'Pending interval or review'}</p>
+        <a className="text-primary" href={donorUrl(d.id)} target="_blank" rel="noreferrer">Open demo inbox ↗</a></details></Card>)}</div>
+  </div>
 }

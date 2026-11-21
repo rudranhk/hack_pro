@@ -14,7 +14,7 @@ export type Urgency = 'CRITICAL' | 'URGENT' | 'STANDARD'
 export type EscalationTier = 'NEARBY' | 'WIDE' | 'CITY' | 'HUMAN' | 'EXPIRED'
 
 /** Hospital-facing lifecycle of a request, independent of any single donor's own status. */
-export type RequestStatus = 'SEARCHING' | 'COVERED' | 'CONFIRMED' | 'FULFILLED' | 'EXPIRED'
+export type RequestStatus = 'SEARCHING' | 'COVERED' | 'CONFIRMED' | 'FULFILLED' | 'EXPIRED' | 'CLOSED' | 'CANCELLED'
 
 /** How a donor renders on the stylized map for a given request. */
 export type DonorMapState = 'ALERTED' | 'ELIGIBLE' | 'UNAVAILABLE' | 'MATCHED'

@@ -19,12 +19,21 @@ export function Tabs<T extends string>({ options, value, onChange, className }: 
       role="tablist"
       className={cn('inline-flex rounded-md border border-border-strong bg-surface-sunken p-1', className)}
     >
-      {options.map((opt) => (
+      {options.map((opt,index) => (
         <button
           key={opt.value}
           type="button"
           role="tab"
           aria-selected={value === opt.value}
+          tabIndex={value===opt.value ? 0 : -1}
+          onKeyDown={e=>{
+            const keys: Record<string,number> = {ArrowRight:(index+1)%options.length,ArrowLeft:(index+options.length-1)%options.length,Home:0,End:options.length-1}
+            const next=keys[e.key]
+            if (next===undefined) return
+            e.preventDefault()
+            e.currentTarget.parentElement?.querySelectorAll('button')[next]?.focus()
+            onChange(options[next].value)
+          }}
           onClick={() => onChange(opt.value)}
           className={cn(
             'rounded-sm px-3.5 py-1.5 text-[13px] font-medium transition-colors',

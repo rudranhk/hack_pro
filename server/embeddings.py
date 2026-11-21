@@ -1,6 +1,6 @@
-"""Gemini embeddings — turns a request or donor profile description into a vector."""
-
+"""Model-specific, dimension-checked embeddings. Profiles contain synthetic logistics only."""
 from functools import lru_cache
+from math import isfinite
 
 from config import settings
 
@@ -11,23 +11,29 @@ class EmbeddingError(RuntimeError):
 
 @lru_cache(maxsize=1)
 def _client():
-    if not settings.gemini_configured:
-        raise EmbeddingError("GEMINI_API_KEY is not set — see server/.env.example")
-    from google import genai  # imported lazily so the app can boot without the package mattering yet
+    from google import genai
+    from google.genai import types
+    return genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=15000))
 
-    return genai.Client(api_key=settings.gemini_api_key)
+
+@lru_cache(maxsize=256)
+def _embedding(model: str, dimension: int, text: str) -> tuple[float, ...]:
+    try:
+        result = _client().models.embed_content(
+            model=model, contents=text, config={"output_dimensionality": dimension}
+        )
+        values = result.embeddings[0].values
+        if len(values) != dimension or not all(isfinite(v) for v in values) or not any(values):
+            raise ValueError("Expected a finite, nonzero vector with the configured dimension")
+        return tuple(values)
+    except Exception as exc:
+        raise EmbeddingError("Gemini embedding unavailable. Check model access and dimensions.") from exc
 
 
 def embed_text(text: str) -> list[float]:
-    """Embed a single piece of text with Gemini's embedding model."""
-    try:
-        result = _client().models.embed_content(model=settings.embedding_model, contents=text)
-        return list(result.embeddings[0].values)
-    except EmbeddingError:
-        raise
-    except Exception as exc:  # noqa: BLE001 — surface the real SDK error to the caller
-        raise EmbeddingError(f"Gemini embedding call failed: {exc}") from exc
+    return list(_embedding(settings.embedding_model, settings.embedding_dim, text))
 
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
+    # Each donor needs an independent vector. Embedding 2 can aggregate multi-part input.
     return [embed_text(text) for text in texts]

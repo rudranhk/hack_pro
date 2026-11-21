@@ -19,7 +19,7 @@ export function Step4Review({ draft }: { draft: RequestDraft }) {
       <div>
         <h3 className="text-[13px] font-semibold text-ink">Review request</h3>
         <p className="mt-0.5 text-[12.5px] text-ink-secondary">
-          Confirm the details below — alerts go out to top-ranked eligible donors as soon as you submit.
+          Confirm the details below. Matching runs on submission and follows the hospital’s invitation preference.
         </p>
       </div>
 
@@ -44,7 +44,8 @@ export function Step4Review({ draft }: { draft: RequestDraft }) {
             '—'
           )}
         </ReviewRow>
-        <ReviewRow label="Location">City Hospital — 42 Marina Road, Sector 9</ReviewRow>
+        <ReviewRow label="Initial search radius">{draft.radius} km</ReviewRow>
+        <ReviewRow label="Location">City Hospital — 42 Marina Road, Sector 9 (synthetic site)</ReviewRow>
       </div>
 
       <div className="flex gap-3 rounded-md border border-info-border bg-info-subtle p-4">

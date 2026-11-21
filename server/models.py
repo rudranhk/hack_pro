@@ -20,9 +20,10 @@ class ScoreBreakdown(BaseModel):
 class MatchRequest(BaseModel):
     bloodGroup: BloodGroup
     component: Component
-    unitsNeeded: int = Field(gt=0, le=10)
+    unitsNeeded: int = Field(gt=0, le=10, strict=True)
     urgency: Urgency
-    topK: int = Field(default=5, ge=1, le=20)
+    logistics: Literal["Evening arrival", "Travel by public transit", "Help finding the collection entrance"] | None = None
+    topK: int = Field(default=5, ge=1, le=20, strict=True)
 
 
 class DonorMatch(BaseModel):

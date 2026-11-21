@@ -11,7 +11,6 @@ export function StockTable({ entries }: { entries: StockEntry[] }) {
           <tr>
             <Th>Blood group</Th>
             <Th>Available</Th>
-            <Th>Reserved</Th>
             <Th>Critical threshold</Th>
             <Th>Status</Th>
           </tr>
@@ -23,7 +22,6 @@ export function StockTable({ entries }: { entries: StockEntry[] }) {
               <Tr key={entry.bloodGroup}>
                 <Td className="font-mono font-semibold">{entry.bloodGroup}</Td>
                 <Td className="tabular">{entry.available}</Td>
-                <Td className="tabular text-ink-secondary">{entry.reserved}</Td>
                 <Td className="tabular text-ink-tertiary">{entry.criticalThreshold}</Td>
                 <Td>
                   <Badge tone={stockStatusTone[status]} dot size="sm">

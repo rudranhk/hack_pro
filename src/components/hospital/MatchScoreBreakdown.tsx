@@ -4,7 +4,7 @@ import type { ScoreBreakdown } from '@/lib/types'
 const FACTORS: { key: keyof ScoreBreakdown; label: string; max: number }[] = [
   { key: 'compatibility', label: 'Compatibility', max: 40 },
   { key: 'proximity', label: 'Proximity', max: 25 },
-  { key: 'eligibilityMargin', label: 'Eligibility margin', max: 15 },
+  { key: 'eligibilityMargin', label: 'Review on file', max: 15 },
   { key: 'responseHistory', label: 'Response history', max: 12 },
   { key: 'recentActivity', label: 'Recent activity', max: 8 },
 ]

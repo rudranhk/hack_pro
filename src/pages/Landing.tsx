@@ -1,8 +1,8 @@
+import { BrandHomeLink } from '@/components/layout/BrandHomeLink'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   Building2,
-  Droplet,
   Filter,
   HeartHandshake,
   Lock,
@@ -15,8 +15,8 @@ import { buttonClasses } from '@/components/ui/Button'
 const trustItems = [
   {
     icon: ShieldCheck,
-    title: 'Verified hospitals',
-    description: 'Only confirmed, credentialed hospitals can raise an emergency request.',
+    title: 'Hospital workspace',
+    description: 'A synthetic hospital coordinates requests, invitations and collections.',
   },
   {
     icon: Filter,
@@ -31,7 +31,7 @@ const trustItems = [
   {
     icon: Lock,
     title: 'Privacy-conscious design',
-    description: 'Donor identity stays anonymous until a confirmed acceptance.',
+    description: 'The demo uses anonymous donor IDs and stores no personal contact details.',
   },
 ]
 
@@ -40,18 +40,15 @@ export function Landing() {
     <div className="min-h-svh bg-bg">
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-white">
-              <Droplet size={17} fill="currentColor" strokeWidth={0} />
-            </span>
-            <span className="text-[15px] font-semibold text-ink">BloodLink</span>
-          </div>
+          <BrandHomeLink>
+            <span className="text-[15px] font-semibold text-ink">Blood Buddy</span>
+          </BrandHomeLink>
           <nav className="flex items-center gap-2">
             <Link to="/hospital" className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-              Hospital sign in
+              Hospital demo
             </Link>
             <Link to="/donor" className={buttonClasses({ variant: 'primary', size: 'sm' })}>
-              Donor sign in
+              Donor demo
             </Link>
           </nav>
         </div>
@@ -60,7 +57,7 @@ export function Landing() {
       <main>
         <section className="mx-auto max-w-4xl px-5 pb-16 pt-16 text-center sm:px-8 sm:pt-24">
           <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary-subtle-border bg-primary-subtle px-3 py-1 text-[12px] font-medium text-primary-active">
-            Emergency blood coordination, not another broadcast alert
+            Local demonstration · Synthetic donor network
           </span>
           <h1 className="text-[36px] font-semibold leading-[1.1] tracking-tight text-ink sm:text-[52px]">
             Find the right donor.
@@ -82,7 +79,7 @@ export function Landing() {
               </span>
               <span className="mt-4 text-[15px] font-semibold text-ink">I'm a hospital</span>
               <span className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">
-                Raise a verified emergency request and track matching in real time.
+                Raise a synthetic emergency request and track matching in real time.
               </span>
               <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-secondary">
                 Enter hospital dashboard
@@ -148,8 +145,8 @@ export function Landing() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-5 py-8 text-[12px] text-ink-tertiary sm:px-8">
-          <p>BloodLink is a working prototype — requests, donors and metrics are synthetic demo data.</p>
-          <p>&copy; {new Date().getFullYear()} BloodLink. Not a substitute for official blood-bank systems.</p>
+          <p>Local demonstration with synthetic records. Metrics reflect actions in your workspace.</p>
+          <p>&copy; {new Date().getFullYear()} Blood Buddy. Not a substitute for official blood-bank systems.</p>
         </div>
       </footer>
     </div>

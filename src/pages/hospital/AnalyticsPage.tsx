@@ -1,109 +1,31 @@
-import { CheckCircle2, Info, Send, Timer, Users } from 'lucide-react'
+import { useSearchParams } from "react-router-dom"
+import { Activity, CheckCircle2, Send, Timer } from 'lucide-react'
+import { useRequests } from '@/lib/context/RequestsContext'
 import { MetricCard } from '@/components/hospital/MetricCard'
-import { ChartCard } from '@/components/charts/ChartCard'
-import { LineChart } from '@/components/charts/LineChart'
+import { Card } from '@/components/ui/Card'
 import { BarChart } from '@/components/charts/BarChart'
-import {
-  analyticsKpis,
-  bloodGroupDemand,
-  escalationFrequency,
-  requestsOverTime,
-  responseRateOverTime,
-  systemEfficiency,
-  timeToFirstAccept,
-  timeToFirstAcceptMedianMinutes,
-} from '@/lib/mockAnalytics'
-
-const SERIES_BLUE = '#2a78d6'
-// Ordinal severity ramp (light -> dark = mild -> severe), validated against the app's white surface.
-const ESCALATION_RAMP = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281']
 
 export function AnalyticsPage() {
-  const efficiencyRatio = (
-    systemEfficiency.broadcast.alerts /
-    systemEfficiency.broadcast.usefulDonors /
-    (systemEfficiency.filtered.alerts / systemEfficiency.filtered.confirmedDonors)
-  ).toFixed(1)
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-2 rounded-md border border-info-border bg-info-subtle px-3.5 py-2.5 text-[12.5px] text-info">
-        <Info size={15} className="mt-0.5 shrink-0" />
-        Every figure on this page is synthetic demo data generated for this prototype — none of it reflects
-        real hospital or donor activity.
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Timer} label="Median time to first accept" value={analyticsKpis.medianFirstAccept} tone="info" caption="across all requests" />
-        <MetricCard icon={Send} label="Alerts per unit collected" value={analyticsKpis.alertsPerUnitCollected} tone="neutral" caption="lower is more efficient" />
-        <MetricCard icon={CheckCircle2} label="Requests fulfilled" value={analyticsKpis.requestsFulfilled} tone="success" caption="last 30 days" />
-        <MetricCard icon={Users} label="Average response rate" value={analyticsKpis.averageResponseRate} tone="critical" caption="of donors alerted" />
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <ChartCard title="Requests over time" subtitle="Emergency requests raised per day">
-          <LineChart data={requestsOverTime} color={SERIES_BLUE} valueFormat={(v) => String(v)} />
-        </ChartCard>
-        <ChartCard title="Response rate" subtitle="Share of alerted donors who responded, per day">
-          <LineChart data={responseRateOverTime} color={SERIES_BLUE} valueFormat={(v) => `${v}%`} />
-        </ChartCard>
-        <ChartCard title="Blood group demand" subtitle="Requested units by blood group, last 30 days">
-          <BarChart data={bloodGroupDemand} color={SERIES_BLUE} valueFormat={(v) => String(v)} />
-        </ChartCard>
-        <ChartCard title="Escalation frequency" subtitle="Tier each request was resolved or closed at, last 30 days">
-          <BarChart
-            data={escalationFrequency.map((d, i) => ({ label: d.label, value: d.value, color: ESCALATION_RAMP[i] }))}
-            valueFormat={(v) => String(v)}
-          />
-        </ChartCard>
-        <ChartCard
-          title="Time to first accept"
-          subtitle="Minutes from alert to a donor accepting, most recent requests"
-          className="lg:col-span-2"
-        >
-          <BarChart
-            data={timeToFirstAccept}
-            color={SERIES_BLUE}
-            valueFormat={(v) => `${v}m`}
-            referenceLine={{ value: timeToFirstAcceptMedianMinutes, label: 'Median 2m 14s' }}
-          />
-        </ChartCard>
-      </div>
-
-      <div className="rounded-lg border border-border bg-surface p-5">
-        <h2 className="text-[15px] font-semibold text-ink">System efficiency</h2>
-        <p className="mt-0.5 text-[12.5px] text-ink-secondary">
-          Filtering and ranking donors before alerting, instead of broadcasting to everyone.
-        </p>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-md border border-border-strong bg-surface-sunken p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
-              {systemEfficiency.broadcast.label}
-            </p>
-            <p className="mt-2 text-[22px] font-semibold text-ink">
-              {systemEfficiency.broadcast.alerts} alerts
-              <span className="mx-2 font-normal text-ink-tertiary">→</span>
-              {systemEfficiency.broadcast.usefulDonors} useful donors
-            </p>
-          </div>
-          <div className="rounded-md border border-success-border bg-success-subtle p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-success">
-              {systemEfficiency.filtered.label}
-            </p>
-            <p className="mt-2 text-[22px] font-semibold text-ink">
-              {systemEfficiency.filtered.alerts} alerts
-              <span className="mx-2 font-normal text-ink-tertiary">→</span>
-              {systemEfficiency.filtered.confirmedDonors} confirmed donors
-            </p>
-          </div>
-        </div>
-
-        <p className="mt-4 text-[12.5px] text-ink-secondary">
-          <span className="font-semibold text-ink">~{efficiencyRatio}× fewer alerts</span> sent per useful donor
-          reached, in this synthetic comparison.
-        </p>
-      </div>
-    </div>
-  )
+  const {data,snapshotTime} = useRequests()
+  const [params,setParams] = useSearchParams()
+  const days = params.get("days") || "all"
+  const since = days==="all" ? 0 : snapshotTime-Number(days)*86400
+  if (!data) return null
+  const events = data.events.filter(e=>e.at>=since)
+  const requests = data.requests.filter(r=>r.created>=since)
+  const invites = events.filter(e => e.event === 'INVITED')
+  const accepted = events.filter(e => e.event === 'ACCEPTED').length
+  const declined = events.filter(e => e.event === 'DECLINED').length
+  const times = data.offers.flatMap(o => o.responded !== null && o.responded >= since && o.invited !== null ? [o.responded-o.invited] : []).sort((a,b) => a-b)
+  const middle = Math.floor(times.length / 2)
+  const median = times.length ? Math.round((times[middle] + times[Math.floor((times.length-1)/2)])/2) + 's' : '—'
+  const counts = ['CRITICAL','URGENT','STANDARD'].map(label => ({label, value:requests.filter(r => r.urgency === label).length}))
+  return <div className="space-y-5"><p className="text-sm text-ink-secondary">Measured from this synthetic workspace’s recorded requests and responses.</p>
+    <label className="text-sm">Reporting period <select className="rounded border border-border p-2" value={days} onChange={e=>setParams({days:e.target.value})}>
+      <option value="all">All time</option><option value="1">Last 24 hours</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></label>
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4"><MetricCard label="Invitations sent" icon={Send} value={invites.length}/>
+    <MetricCard label="Acceptances" icon={CheckCircle2} value={accepted}/><MetricCard label="Declines" icon={Activity} value={declined}/>
+    <MetricCard label="Median response time" icon={Timer} value={median}/></div>
+    <Card className="space-y-4 p-5"><h2 className="font-semibold">Requests by urgency</h2>{requests.length ?
+      <BarChart data={counts} color="var(--color-primary)" valueFormat={String}/> : <p>No requests were created during this reporting period.</p>}</Card></div>
 }

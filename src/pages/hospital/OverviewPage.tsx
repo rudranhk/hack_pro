@@ -5,7 +5,7 @@ import { EmergencyRequestCard, EmergencyRequestListHeader } from '@/components/h
 import { EmptyState } from '@/components/ui/EmptyState'
 import { buttonClasses } from '@/components/ui/Button'
 import { useRequests } from '@/lib/context/RequestsContext'
-import { mockOverviewMetrics } from '@/lib/mockData'
+import { DemoModeControls } from '@/components/hospital/DemoModeControls'
 import { urgencyLabel } from '@/lib/domainMeta'
 
 function urgencyCaption(activeRequests: ReturnType<typeof useRequests>['activeRequests']): string {
@@ -18,30 +18,42 @@ function urgencyCaption(activeRequests: ReturnType<typeof useRequests>['activeRe
 }
 
 export function OverviewPage() {
-  const { activeRequests } = useRequests()
-  const metrics = mockOverviewMetrics
+  const { activeRequests, data } = useRequests()
+  const responding = new Set(data?.offers.filter(o => ['ACCEPTED','EN_ROUTE','ARRIVED'].includes(o.status)).map(o => o.donorId)).size
+  const secured = activeRequests.reduce((sum,r) => sum + r.unitsSecured, 0)
+  const target = activeRequests.reduce((sum,r) => sum + r.unitsNeeded, 0)
 
   return (
     <div className="flex flex-col gap-6">
+      <DemoModeControls />
+      {activeRequests.filter(r => r.dispatch.escalated && r.status === 'SEARCHING').map(r =>
+        <Link key={r.id} className="rounded-md border border-border bg-warning-subtle p-4" to={'/hospital/requests/' + r.id}>
+          Coordinator needed · {r.id} · {r.unitsNeeded - r.unitsSecured} units outstanding
+        </Link>)}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard
+          to="/hospital/requests?status=OPEN"
           icon={Siren}
           label="Active Requests"
           value={activeRequests.length}
           tone="critical"
           caption={urgencyCaption(activeRequests)}
         />
-        <MetricCard icon={Users} label="Donors Responding" value={metrics.donorsResponding} tone="info" caption="across all open requests" />
+        <MetricCard to="/hospital/matches?view=responding" icon={Users} label="Donors Responding" value={responding} tone="info" caption="across all open requests" />
         <MetricCard
+          to="/hospital/matches?view=secured"
           icon={Droplets}
           label="Units Secured"
-          value={`${metrics.unitsSecured} / ${metrics.unitsTarget}`}
+          value={`${secured} / ${target}`}
           tone="success"
-          caption="today"
+          caption="open requests"
         />
-        <MetricCard icon={Timer} label="Median First Response" value={metrics.medianFirstResponse} tone="neutral" caption="today, all requests" />
+        <MetricCard to="/hospital/matches?view=pending" icon={Timer} label="Awaiting reply" value={data?.offers.filter(o => o.status === 'INVITED').length ?? 0} tone="neutral" caption="outstanding invitations" />
       </div>
 
+      <Link className="rounded-lg border border-border bg-surface p-4 text-sm hover:border-primary" to="/hospital/stock">
+        Blood stock · {data?.stock.reduce((n,s)=>n+s.available,0) ?? 0} available units across all components
+      </Link>
       <div>
         <div className="mb-3 flex items-center justify-between">
           <div>

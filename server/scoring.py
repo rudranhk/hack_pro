@@ -16,13 +16,13 @@ def score_candidate(
     *,
     exact_blood_match: bool,
     distance_km: float,
-    available: bool,
+    review_on_file: bool,
     response_rate: float,
     last_active_days: int,
 ) -> tuple[ScoreBreakdown, int]:
     compatibility = 40 if exact_blood_match else 28
     proximity = max(0, min(25, round(25 - distance_km * 0.6)))
-    eligibility_margin = 15 if available else 2
+    eligibility_margin = 15 if review_on_file else 0
     response_history = max(0, min(12, round(12 * response_rate)))
     recent_activity = max(0, min(8, round(8 - last_active_days * 0.5)))
 

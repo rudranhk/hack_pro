@@ -1,9 +1,11 @@
+import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/utils'
 
 export interface MetricCardProps {
+  to?: string
   icon: LucideIcon
   label: string
   value: ReactNode
@@ -19,8 +21,8 @@ const toneClasses: Record<NonNullable<MetricCardProps['tone']>, string> = {
   warning: 'bg-warning-subtle text-warning',
 }
 
-export function MetricCard({ icon: Icon, label, value, caption, tone = 'neutral' }: MetricCardProps) {
-  return (
+export function MetricCard({ to, icon: Icon, label, value, caption, tone = 'neutral' }: MetricCardProps) {
+  const card = (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <p className="text-[12.5px] font-medium text-ink-secondary">{label}</p>
@@ -32,4 +34,5 @@ export function MetricCard({ icon: Icon, label, value, caption, tone = 'neutral'
       {caption && <p className="mt-2 text-[12px] text-ink-tertiary">{caption}</p>}
     </Card>
   )
+  return to ? <Link to={to} className="rounded-lg hover:ring-1 hover:ring-primary focus-visible:ring-2">{card}</Link> : card
 }

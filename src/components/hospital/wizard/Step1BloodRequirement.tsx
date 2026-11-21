@@ -23,7 +23,7 @@ export function Step1BloodRequirement({ draft, onChange }: StepProps) {
         <div className="mt-3 grid grid-cols-4 gap-2">
           {bloodGroups.map((group) => (
             <button
-              key={group}
+              key={group} aria-pressed={draft.bloodGroup===group}
               type="button"
               onClick={() => onChange({ bloodGroup: group })}
               className={cn(
@@ -47,6 +47,7 @@ export function Step1BloodRequirement({ draft, onChange }: StepProps) {
             const selected = draft.component === item.value
             return (
               <button
+                aria-pressed={selected}
                 key={item.value}
                 type="button"
                 onClick={() => onChange({ component: item.value })}

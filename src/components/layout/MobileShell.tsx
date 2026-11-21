@@ -1,3 +1,4 @@
+import { BrandHomeLink } from './BrandHomeLink'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -36,9 +37,9 @@ export function MobileShell({
 
         {!headerless && (
           <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-4">
-            <div className="flex w-9 items-center">{leadingAction}</div>
+            <div className="flex w-9 items-center">{leadingAction ?? (title !== 'Blood Buddy' && <BrandHomeLink />)}</div>
             <h1 className="min-w-0 flex-1 truncate text-center text-[15px] font-semibold text-ink">
-              {title}
+              {title === 'Blood Buddy' ? <BrandHomeLink>{title}</BrandHomeLink> : title}
             </h1>
             <div className="flex w-9 items-center justify-end">{trailingAction}</div>
           </div>

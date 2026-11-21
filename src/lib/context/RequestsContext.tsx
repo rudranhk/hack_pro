@@ -1,80 +1,81 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { mockRequests } from '@/lib/mockData'
-import type { BloodGroup, Component, EmergencyRequest, Urgency } from '@/lib/types'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/Button'
+import { api, type Requirement, type Workspace } from '@/lib/api/workspace'
+import { subscribe, type Connection } from '@/lib/api/realtime'
 
-export interface CreateRequestInput {
-  bloodGroup: BloodGroup
-  component: Component
-  unitsNeeded: number
-  urgency: Urgency
-}
-
-interface RequestsContextValue {
-  requests: EmergencyRequest[]
-  /** Non-terminal requests (SEARCHING / COVERED / CONFIRMED) — what "active" means across the dashboard. */
-  activeRequests: EmergencyRequest[]
-  createRequest: (input: CreateRequestInput) => EmergencyRequest
-  /** Generic patch — used by Demo Mode to fast-forward a request's escalation without waiting in real time. */
-  updateRequest: (id: string, patch: Partial<EmergencyRequest>) => void
-}
-
-const RequestsContext = createContext<RequestsContextValue | null>(null)
-
-function nextRequestId(existing: EmergencyRequest[]): string {
-  const highest = existing.reduce((max, req) => {
-    const num = Number(req.id.replace('REQ-', ''))
-    return Number.isFinite(num) ? Math.max(max, num) : max
-  }, 2000)
-  return `REQ-${highest + 1}`
-}
-
-function formatCreatedAt(date: Date): string {
-  return `Today, ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-}
-
-export function RequestsProvider({ children }: { children: ReactNode }) {
-  const [requests, setRequests] = useState<EmergencyRequest[]>(mockRequests)
-
-  const createRequest = useCallback(
-    (input: CreateRequestInput): EmergencyRequest => {
-      const created: EmergencyRequest = {
-        id: nextRequestId(requests),
-        hospitalName: 'City Hospital',
-        bloodGroup: input.bloodGroup,
-        component: input.component,
-        unitsNeeded: input.unitsNeeded,
-        unitsSecured: 0,
-        urgency: input.urgency,
-        status: 'SEARCHING',
-        escalationTier: 'NEARBY',
-        timeElapsedLabel: '00:00',
-        createdAtLabel: formatCreatedAt(new Date()),
+function useWorkspaceState() {
+  const [data, setData] = useState<Workspace | null>(null)
+  const [snapshotTime,setSnapshotTime] = useState(0)
+  const [error, setError] = useState('')
+  const [connection, setConnection] = useState<Connection>('Connecting')
+  const sequence = useRef(0)
+  const {pathname} = useLocation()
+  const requestId = pathname.match(/^\/hospital\/requests\/(REQ-[A-Z0-9]+)$/)?.[1]
+  const channel = requestId ?? 'workspace'
+  const landing = pathname === '/'
+  const refresh = useCallback(async () => {
+    const call = ++sequence.current
+    try {
+      const value = await api<Workspace>('/workspace')
+      if (sequence.current !== call) return
+      for (const r of value.requests) {
+        const seconds = Math.max(0, Math.floor(Date.now() / 1000) - r.created)
+        r.hospitalName = value.hospital.name
+        r.createdAtLabel = new Date(r.created * 1000).toLocaleString()
+        r.timeElapsedLabel = Math.floor(seconds / 60) + 'm'
+        r.escalationTier = r.radius === 5 ? 'NEARBY' : r.radius === 15 ? 'WIDE' : 'CITY'
       }
-      setRequests((prev) => [created, ...prev])
-      return created
-    },
-    [requests]
-  )
-
-  const updateRequest = useCallback((id: string, patch: Partial<EmergencyRequest>) => {
-    setRequests((prev) => prev.map((req) => (req.id === id ? { ...req, ...patch } : req)))
+      setSnapshotTime(Date.now()/1000)
+      setData(value)
+      setError('')
+    } catch (e) {
+      if (sequence.current === call) setError(e instanceof Error ? e.message : 'Unable to load workspace.')
+    }
   }, [])
-
-  const activeRequests = useMemo(
-    () => requests.filter((r) => r.status !== 'FULFILLED' && r.status !== 'EXPIRED'),
-    [requests]
-  )
-
-  const value = useMemo(
-    () => ({ requests, activeRequests, createRequest, updateRequest }),
-    [requests, activeRequests, createRequest, updateRequest]
-  )
-
-  return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>
+  useEffect(() => {
+    if (landing) return
+    const initial = window.setTimeout(refresh, 0)
+    const stop = subscribe(channel, refresh, setConnection)
+    const sync = window.setInterval(refresh, 30000)
+    return () => { stop(); clearTimeout(initial); clearInterval(sync) }
+  }, [channel, landing, refresh])
+  const mutate = async (path: string, body: unknown) => {
+    const result = await api<{id?: string}>(path, body)
+    await refresh()
+    return result
+  }
+  const createRequest = async (input: Requirement, token: string) => {
+    const result = await mutate('/requests', {...input, token})
+    if (!result.id) throw new Error('Service returned no request ID.')
+    return {id: result.id}
+  }
+  return { data, snapshotTime, error, refresh, connection, mutate, createRequest, requests: data?.requests ?? [],
+    activeRequests: data?.requests.filter(r => !r.closed) ?? [] }
 }
 
-export function useRequests(): RequestsContextValue {
-  const ctx = useContext(RequestsContext)
-  if (!ctx) throw new Error('useRequests must be used within a RequestsProvider')
-  return ctx
+const Context = createContext<ReturnType<typeof useWorkspaceState> | null>(null)
+
+export function RequestsProvider({children}: {children: ReactNode}) {
+  const state = useWorkspaceState()
+  const {pathname} = useLocation()
+  if (pathname !== '/' && !state.data) return (
+    <main className="mx-auto mt-16 max-w-lg space-y-4 rounded-lg border border-border bg-surface p-6" aria-live="polite">
+      <h1 className="font-semibold">Blood Buddy workspace</h1>
+      {state.error ? <><p role="alert">{state.error}</p><Button onClick={state.refresh}>Retry connection</Button></> :
+        <><p>Loading hospital and donor records…</p><div className="h-12 animate-pulse rounded-md bg-surface-sunken" /></>}
+    </main>
+  )
+  return <Context.Provider value={state}>
+    {pathname !== '/' && state.error && <div role="alert" className="flex flex-wrap items-center gap-3 bg-warning-subtle px-4 py-2 text-sm">
+      <span>Showing the last successful update. {state.error}</span>
+      <Button size="sm" variant="outline" onClick={state.refresh}>Retry connection</Button>
+    </div>}
+    {children}
+  </Context.Provider>
+}
+export function useRequests() {
+  const state = useContext(Context)
+  if (!state) throw new Error('Workspace provider is required')
+  return state
 }

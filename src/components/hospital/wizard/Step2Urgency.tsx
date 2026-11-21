@@ -42,14 +42,14 @@ export function Step2Urgency({ draft, onChange }: StepProps) {
     <div>
       <h3 className="text-[13px] font-semibold text-ink">Urgency</h3>
       <p className="mt-0.5 text-[12.5px] text-ink-secondary">
-        This sets the escalation pace — how quickly the search radius expands if nobody responds.
+        This priority appears in the donor invitation, hospital dashboard and matching query.
       </p>
       <div className="mt-3 flex flex-col gap-2.5">
         {urgencyOptions.map((option) => {
           const selected = draft.urgency === option.value
           return (
             <button
-              key={option.value}
+              key={option.value} aria-pressed={selected}
               type="button"
               onClick={() => onChange({ urgency: option.value })}
               className={cn(

@@ -72,7 +72,7 @@ export function BarChart({
 
   return (
     <div className={cn('relative', className)}>
-      <svg viewBox={`0 0 ${VIEW_W} ${height}`} className="w-full" style={{ height }} role="img" aria-label="Bar chart">
+      <svg viewBox={`0 0 ${VIEW_W} ${height}`} className="w-full" style={{ height }} role="img" aria-label={data.map(d=>d.label+' '+d.value).join(', ')}>
         <line x1={PAD_L} x2={VIEW_W - PAD_R} y1={plotBottom} y2={plotBottom} stroke="var(--color-border-strong)" strokeWidth={1} />
 
         {refY !== null && referenceLine && (

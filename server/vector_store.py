@@ -1,7 +1,8 @@
-"""Qdrant Cloud wrapper — donor vectors live here, with donor facts as payload."""
-
 from functools import lru_cache
+from hashlib import sha256
+from threading import Lock
 
+from qdrant_client import QdrantClient, models
 from config import settings
 
 
@@ -11,45 +12,70 @@ class VectorStoreError(RuntimeError):
 
 @lru_cache(maxsize=1)
 def _client():
-    if not settings.qdrant_configured:
-        raise VectorStoreError("QDRANT_URL / QDRANT_API_KEY are not set — see server/.env.example")
-    from qdrant_client import QdrantClient
-
-    return QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+    return QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key, timeout=10)
 
 
-def ensure_collection() -> None:
-    from qdrant_client.models import Distance, VectorParams
+_seed_lock = Lock()
 
+
+def ensure_collection():
     client = _client()
-    existing = {c.name for c in client.get_collections().collections}
-    if settings.qdrant_collection not in existing:
-        client.create_collection(
-            collection_name=settings.qdrant_collection,
-            vectors_config=VectorParams(size=settings.embedding_dim, distance=Distance.COSINE),
+    name = settings.qdrant_collection
+    if not client.collection_exists(name):
+        client.create_collection(name, vectors_config=models.VectorParams(
+            size=settings.embedding_dim, distance=models.Distance.COSINE))
+    info = client.get_collection(name)
+    vectors = info.config.params.vectors
+    if getattr(vectors, "size", None) != settings.embedding_dim or vectors.distance != models.Distance.COSINE:
+        raise VectorStoreError("Qdrant schema mismatch. Configure a separate demo collection.")
+    for field in ("bloodGroup", "profileVersion"):
+        if field not in info.payload_schema:
+            client.create_payload_index(name, field, field_schema=models.PayloadSchemaType.KEYWORD, wait=True)
+
+
+def profile_version():
+    return f"blood-buddy-synthetic-v2/{settings.embedding_model}/{settings.embedding_dim}"
+
+
+def ensure_profiles(donors):
+    from embeddings import embed_text
+    with _seed_lock:
+        ensure_collection()
+        client = _client()
+        name = settings.qdrant_collection
+        stored = client.retrieve(name, [d.id for d in donors], with_payload=True)
+        fingerprints = {d.id: sha256(f"{d.profile_text}|{d.bloodGroup}|{d.distanceKm}".encode()).hexdigest() for d in donors}
+        known = set()
+        for point in stored:
+            payload = point.payload or {}
+            if not str(payload.get("profileVersion", "")).startswith("blood-buddy-synthetic-v2/"):
+                raise VectorStoreError("Use a dedicated synthetic donor collection.")
+            if payload.get("profileVersion") == profile_version() and payload.get("profileHash") == fingerprints[point.id]:
+                known.add(point.id)
+        points = [models.PointStruct(id=d.id, vector=embed_text(d.profile_text), payload={
+            "bloodGroup": d.bloodGroup, "profileVersion": profile_version(), "distanceKm": d.distanceKm,
+            "profileHash": fingerprints[d.id],
+        }) for d in donors if d.id not in known]
+        if points:
+            client.upsert(name, points=points, wait=True)
+        return len(points)
+
+
+def retrieve(query, groups, eligible_ids):
+    from embeddings import EmbeddingError, embed_text
+    from seed_donors import DEMO_DONORS
+    try:
+        ensure_profiles(DEMO_DONORS)
+        result = _client().query_points(
+            settings.qdrant_collection, query=embed_text(query),
+            query_filter=models.Filter(must=[
+                models.HasIdCondition(has_id=eligible_ids),
+                models.FieldCondition(key="profileVersion", match=models.MatchValue(value=profile_version())),
+                models.FieldCondition(key="bloodGroup", match=models.MatchAny(any=sorted(groups))),
+            ]), limit=len(eligible_ids), with_payload=False,
         )
-
-
-def upsert_donors(points: list[dict]) -> int:
-    """`points` is a list of {id, vector, payload} dicts."""
-    from qdrant_client.models import PointStruct
-
-    ensure_collection()
-    structs = [PointStruct(id=p["id"], vector=p["vector"], payload=p["payload"]) for p in points]
-    _client().upsert(collection_name=settings.qdrant_collection, points=structs)
-    return len(structs)
-
-
-def search_donors(vector: list[float], allowed_blood_groups: set[str], limit: int) -> list:
-    from qdrant_client.models import FieldCondition, Filter, MatchAny
-
-    query_filter = Filter(
-        must=[FieldCondition(key="bloodGroup", match=MatchAny(any=sorted(allowed_blood_groups)))]
-    )
-    return _client().search(
-        collection_name=settings.qdrant_collection,
-        query_vector=vector,
-        query_filter=query_filter,
-        limit=limit,
-        with_payload=True,
-    )
+        return {point.id: float(point.score) for point in result.points}
+    except (EmbeddingError, VectorStoreError):
+        raise
+    except Exception as exc:
+        raise VectorStoreError("Qdrant retrieval unavailable. Check collection configuration and connectivity.") from exc

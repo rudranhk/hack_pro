@@ -15,12 +15,12 @@ import {
 import type { EmergencyRequest } from '@/lib/types'
 
 /** Shared column widths so the header row and every request row line up. */
-const GRID_COLS = 'lg:grid-cols-[100px_1fr_140px_104px_104px_84px_110px_76px]'
+const GRID_COLS = 'xl:grid-cols-[128px_1fr_140px_104px_104px_84px_110px_76px]'
 
 export function EmergencyRequestListHeader() {
   return (
     <div
-      className={`hidden gap-4 px-4 pb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary lg:grid ${GRID_COLS}`}
+      className={`hidden gap-4 px-4 pb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary xl:grid ${GRID_COLS}`}
     >
       <span>Request</span>
       <span>Requirement</span>
@@ -36,16 +36,16 @@ export function EmergencyRequestListHeader() {
 
 export function EmergencyRequestCard({ request }: { request: EmergencyRequest }) {
   return (
-    <div
-      className={`grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-lg border border-border bg-surface p-4 shadow-xs transition-colors hover:border-border-strong lg:gap-y-0 ${GRID_COLS}`}
+    <Link to={'/hospital/requests/'+request.id} aria-label={'View request '+request.id}
+      className={`grid grid-cols-2 items-center gap-x-4 gap-y-3 rounded-lg border border-border bg-surface p-4 shadow-xs transition-colors hover:border-border-strong xl:gap-y-0 ${GRID_COLS}`}
     >
-      <div className="col-span-2 lg:col-span-1">
+      <div className="col-span-2 xl:col-span-1">
         <p className="font-mono text-[13px] font-medium text-ink">{request.id}</p>
         <p className="text-[11.5px] text-ink-tertiary">{request.createdAtLabel}</p>
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
           Requirement
         </p>
         <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export function EmergencyRequestCard({ request }: { request: EmergencyRequest })
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
           Progress
         </p>
         <p className="tabular text-[13px] font-medium text-ink">
@@ -73,14 +73,14 @@ export function EmergencyRequestCard({ request }: { request: EmergencyRequest })
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Urgency</p>
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Urgency</p>
         <Badge tone={urgencyTone[request.urgency]} dot size="sm">
           {urgencyLabel[request.urgency]}
         </Badge>
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">
           Escalation
         </p>
         <Badge tone={escalationTierTone[request.escalationTier]} size="sm">
@@ -89,7 +89,7 @@ export function EmergencyRequestCard({ request }: { request: EmergencyRequest })
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Elapsed</p>
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Elapsed</p>
         <span className="inline-flex items-center gap-1 tabular text-[13px] text-ink-secondary">
           <Clock size={13} />
           {request.timeElapsedLabel}
@@ -97,20 +97,19 @@ export function EmergencyRequestCard({ request }: { request: EmergencyRequest })
       </div>
 
       <div>
-        <p className="lg:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Status</p>
+        <p className="xl:hidden mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-tertiary">Status</p>
         <Badge tone={requestStatusTone[request.status]} size="sm">
           {requestStatusLabel[request.status]}
         </Badge>
       </div>
 
-      <div className="col-span-2 lg:col-span-1 lg:text-right">
-        <Link
-          to={`/hospital/requests/${request.id}`}
-          className={buttonClasses({ variant: 'outline', size: 'sm', className: 'w-full lg:w-auto' })}
+      <div className="col-span-2 xl:col-span-1 xl:text-right">
+        <span
+          className={buttonClasses({ variant: 'outline', size: 'sm', className: 'w-full xl:w-auto' })}
         >
           View
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   )
 }
