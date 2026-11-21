@@ -53,8 +53,8 @@ export interface Workspace {
   events: {id: number; requestId: string | null; donorId: number | null; event: string; at: number}[]
 }
 export type Requirement = {radius?:number; logistics?:string|null; bloodGroup: BloodGroup; component: Component; unitsNeeded: number; urgency: Urgency}
-const apiBase = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')
-const base = new URL(apiBase || window.location.origin, window.location.origin)
+const apiBase = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : window.location.origin)
+const base = new URL(apiBase, window.location.origin)
 const roomKey = 'blood-buddy-room'
 const requestedRoom = new URLSearchParams(window.location.search).get('room')
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
@@ -76,16 +76,13 @@ export function endpoint(path: string) {
 }
 
 export async function api<T>(path: string, body?: unknown): Promise<T> {
-  if (!apiBase) {
-    throw new Error('The hosted matching service is not configured. Set VITE_API_BASE_URL when building the application.')
-  }
   let response: Response
   try {
     response = await fetch(endpoint('/api' + path), body === undefined ? {} : {
       method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
     })
   } catch {
-    throw new Error('Matching service is unreachable. Start FastAPI on port 8000 and retry.')
+    throw new Error('Matching service is unreachable. Check the server connection and retry.')
   }
   if (!response.ok) {
     const reason = await response.json().catch(() => ({}))

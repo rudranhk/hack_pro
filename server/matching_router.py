@@ -50,6 +50,8 @@ class CloseAction(BaseModel):
 
 @router.get("/workspace")
 def workspace(room: UUID):
+    if os.getenv("BLOOD_BUDDY_HOSTED") == "1":
+        service.advance_due(room)
     return service.snapshot(room)
 
 

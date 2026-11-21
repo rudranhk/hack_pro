@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager, suppress
 from uuid import UUID
 from coordination import advance_due
@@ -24,7 +25,7 @@ class LocalDemoAccess:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] in {"http", "websocket"}:
+        if scope["type"] in {"http", "websocket"} and os.getenv("BLOOD_BUDDY_HOSTED") != "1":
             peer = (scope.get("client") or ("",))[0]
             try:
                 local = ip_address(peer).is_loopback
@@ -58,20 +59,22 @@ async def dispatch_loop():
 
 @asynccontextmanager
 async def lifespan(app):
-    worker = asyncio.create_task(dispatch_loop())
+    worker = None if os.getenv("BLOOD_BUDDY_HOSTED") == "1" else asyncio.create_task(dispatch_loop())
     try:
         yield
     finally:
-        worker.cancel()
-        with suppress(asyncio.CancelledError):
-            await worker
+        if worker:
+            worker.cancel()
+            with suppress(asyncio.CancelledError):
+                await worker
 
 
 app = FastAPI(lifespan=lifespan, title="Blood Buddy Matching Service", description="Synthetic local coordination workspace.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET","POST"],
                    allow_headers=["Content-Type"])
 app.add_middleware(LocalDemoAccess)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
+if os.getenv("BLOOD_BUDDY_HOSTED") != "1":
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
 
 
 @app.get("/api/health", response_model=HealthResponse)

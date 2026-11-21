@@ -22,11 +22,11 @@ npm run dev -- --port 5173 --strictPort
 
 Open [Blood Buddy](http://localhost:5173). Use one backend worker. The demo role switcher, HTTP API and notification channels are designed for loopback access.
 
-## Vercel frontend
+## Vercel services
 
-The Vite frontend has a Vercel configuration for direct links to React routes. Set `VITE_API_BASE_URL` at build time to the HTTPS origin of a separately hosted, accessible matching service, then rebuild and deploy. Production builds show a configuration error when this setting is missing. `npm run dev` continues to use the local FastAPI service by default.
+The Vercel configuration routes `/api/*` and `/ws/*` to FastAPI and other paths to the Vite app. Browser requests use the same origin in production. For `vercel dev`, set `VITE_API_BASE_URL=/` so the Vite development build uses the Vercel router. For the existing separate local servers, `npm run dev` continues to use FastAPI on port 8000. An explicit `VITE_API_BASE_URL` can point to a different backend.
 
-The supplied FastAPI service is a local synthetic demo. It restricts access to loopback clients and stores workspace data in local SQLite files. It needs a suitable hosting and access design with durable storage, a continuously running scheduler, and coordinated WebSocket delivery before a hosted frontend can use it. Vercel frontend deployment alone does not provide those services. Do not use real donor or hospital data with this demo.
+The local service stores workspaces in SQLite files. Hosted demo mode uses the provisioned Neon database to persist each synthetic workspace, with a PostgreSQL advisory lock serializing concurrent workspace changes. Hosted clients poll every three seconds and each workspace read checks invitation deadlines. Timers therefore advance while a dashboard is open. The hosted demo exposes interchangeable synthetic roles and has no user authentication. Do not use real donor or hospital data.
 
 ## Judge walkthrough
 

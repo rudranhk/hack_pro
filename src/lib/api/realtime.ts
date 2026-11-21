@@ -1,10 +1,12 @@
 import { endpoint } from './workspace'
 
-export type Connection = 'Connecting' | 'Live' | 'Reconnecting'
+export type Connection = 'Connecting' | 'Live' | 'Reconnecting' | 'Polling'
 export function subscribe(channel: string, refresh: () => void, status: (value: Connection) => void) {
-  if (!import.meta.env.VITE_API_BASE_URL && !import.meta.env.DEV) {
-    status('Reconnecting')
-    return () => {}
+  if (import.meta.env.VITE_HOSTED_DEMO === '1') {
+    status('Polling')
+    refresh()
+    const timer = window.setInterval(refresh, 3000)
+    return () => clearInterval(timer)
   }
   let disposed = false
   let attempts = 0

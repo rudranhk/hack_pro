@@ -4,6 +4,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import date, timedelta
 from pathlib import Path
+from threading import Lock
 from uuid import UUID
 
 from compatibility import ALL_GROUPS
@@ -41,11 +42,44 @@ def data_root():
     return Path(os.getenv("BLOOD_BUDDY_DATA", Path(__file__).parent / "data"))
 
 
+_pool = None
+_pool_lock = Lock()
+
+
+def hosted_pool(url):
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            from psycopg_pool import ConnectionPool
+            _pool = ConnectionPool(url, min_size=0, max_size=5, kwargs={"connect_timeout": 10})
+        return _pool
+
+
 @contextmanager
 def database(room, *, write=False):
-    root = data_root()
-    root.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(root / f"{UUID(str(room))}.sqlite3", timeout=10)
+    room = UUID(str(room))
+    postgres_url = os.getenv("DATABASE_URL") if os.getenv("BLOOD_BUDDY_HOSTED") == "1" else None
+    remote = None
+    if postgres_url:
+        pool = hosted_pool(postgres_url)
+        remote = pool.getconn()
+        try:
+            remote.execute("CREATE TABLE IF NOT EXISTS demo_workspaces (id uuid PRIMARY KEY, contents bytea NOT NULL)")
+            remote.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (str(room),))
+            saved = remote.execute("SELECT contents FROM demo_workspaces WHERE id=%s", (str(room),)).fetchone()
+            db = sqlite3.connect(":memory:")
+            if saved:
+                db.deserialize(bytes(saved[0]))
+        except Exception:
+            remote.rollback()
+            pool.putconn(remote)
+            raise
+    else:
+        if os.getenv("BLOOD_BUDDY_HOSTED") == "1":
+            raise RuntimeError("DATABASE_URL is required in hosted mode.")
+        root = data_root()
+        root.mkdir(parents=True, exist_ok=True)
+        db = sqlite3.connect(root / f"{room}.sqlite3", timeout=10)
     db.row_factory = sqlite3.Row
     try:
         db.execute("PRAGMA foreign_keys=ON")
@@ -85,8 +119,15 @@ def database(room, *, write=False):
         db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
         yield db
         db.commit()
+        if remote:
+            remote.execute("""INSERT INTO demo_workspaces(id,contents) VALUES(%s,%s)
+                ON CONFLICT(id) DO UPDATE SET contents=excluded.contents""", (str(room), db.serialize()))
+            remote.commit()
     finally:
         db.close()
+        if remote:
+            remote.rollback()
+            pool.putconn(remote)
 
 
 def seed_workspace(db):
