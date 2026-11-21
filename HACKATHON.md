@@ -35,22 +35,22 @@ For this paced presentation, set `WAVE_SECONDS=100` and `INVITE_SECONDS=180` in 
 flowchart LR
   H[Hospital control room] -->|HTTP| F[FastAPI]
   D[Donor inbox] -->|HTTP| F
-  F --> S[(SQLite workspace)]
+  F --> S[(Local SQLite or Neon workspace snapshot)]
   F --> R[Compatibility, component, clearance, availability, radius]
   R --> W[Weighted scoring and contact policy]
   R -->|Optional logistics preference| G[Gemini embeddings]
   G --> Q[Qdrant filtered by group and eligible IDs]
   Q -->|Tie breaker| W
   W --> S
-  T[Deadline worker] --> W
+  T[Local worker or hosted workspace read] --> W
   T --> S
-  F -->|After commit| E[WebSocket invalidation]
+  F -->|Local WebSocket or hosted polling| E[Dashboard updates]
   T --> E
   E --> H
   E --> D
 ```
 
-1. SQLite supplies the authoritative donor records. The service applies component-specific blood policy, component support, clearance date, availability, commitments and radius before any vector operation. Final dispatch checks the current records again inside the write transaction. The demo’s outreach rules and seeded clearance dates require external blood-bank screening.
+1. The workspace database supplies the authoritative donor records. The service applies component-specific blood policy, component support, clearance date, availability, commitments and radius before any vector operation. Final dispatch checks the current records again inside the write transaction. The demo’s outreach rules and seeded clearance dates require external blood-bank screening.
 2. The score awards up to 40 points for group compatibility, 25 for proximity, 15 for a clearance record, 12 for response history and 8 for recent activity. Response history starts with a fictional ten-invitation baseline. Acceptances and declines both count as replies. Expired unanswered invitations enter the denominator. Retractions and pending offers do not.
 3. Automatic dispatch prioritizes fewer invitations in the last rolling 24 hours, then higher coordination score, then optional similarity and stable donor ID. A 900-second cooldown and three-per-day limit also apply to manual contact. An actual invitation can be sent only once per donor and request. A manual invite can increase the number of outstanding offers, while a write transaction still limits the number of commitments.
 4. Every 45 seconds by default, the scheduler checks the next wave. Wave 1 budgets one pending invitation per outstanding unit, wave 2 budgets two and wave 3 budgets three and expands to at least 15 km. Each invitation expires after 90 seconds by default. After the third deadline an uncovered request appears in the coordinator’s escalation list. Pause, closure and coverage suppress automatic outreach. Thresholds are in `server/.env.example`.
@@ -71,7 +71,7 @@ flowchart LR
 | stock_issue | One stock decrement per unique submission token, with group, component, issue date in UTC and units |
 | stock_day | Confirmed full-day usage totals keyed by blood group, component and UTC date |
 
-Each workspace has a separate SQLite file. Existing workspaces acquire the new tables on access. Historical decisions predating this version have no reconstructed explanation. Earlier requests retain manual dispatch unless they already have a scheduled deadline.
+Locally, each workspace has a separate SQLite file. Hosted mode stores a serialized SQLite workspace in Neon Postgres and uses a transaction-scoped advisory lock to serialize changes. Existing workspaces acquire the new tables on access. Historical decisions predating this version have no reconstructed explanation. Earlier requests retain manual dispatch unless they already have a scheduled deadline.
 
 | Method and route | Contract |
 |---|---|
@@ -89,7 +89,7 @@ Each workspace has a separate SQLite file. Existing workspaces acquire the new t
 | POST /api/donors/{id}/availability, /api/hospital/settings | Update donor availability or automatic invitations |
 | POST /api/admin/seed, /api/requests/match | Index synthetic logistics profiles or explicitly preview cloud retrieval |
 
-Workspace operations take a UUID `room` query parameter. Each WebSocket subscribes at `/ws/requests/{requestId-or-workspace}?room={uuid}`. The server sends `{"event":"ready"}` on connect and replies to text `ping` with `pong`. A committed change sends an invalidation such as `{"event":"dispatch.wave","requests":["REQ-…"]}`. Clients refetch SQLite-backed state and resynchronize after reconnect.
+Workspace operations take a UUID `room` query parameter. Hosted clients poll about every three seconds and process due waves on workspace reads. In local mode, each WebSocket subscribes at `/ws/requests/{requestId-or-workspace}?room={uuid}`. The server sends `{"event":"ready"}` on connect and replies to text `ping` with `pong`. A committed change sends an invalidation such as `{"event":"dispatch.wave","requests":["REQ-…"]}`. Clients refetch SQLite-backed state and resynchronize after reconnect.
 
 | Event names | Trigger |
 |---|---|
@@ -109,8 +109,8 @@ Coverage and fulfilment are visible on the snapshot fetched after the correspond
 * **Implemented locally.** SQLite persistence, actual timed dispatch, scoped WebSockets, race-safe commitments, decision history, metrics derived from events, request review, synthetic stock updates and repeatable workspace reset.
 * **Inventory outlook.** Hospital → Blood Stock compares current availability with the issued units in the previous seven complete UTC days. Confirm each day's total for a group and component in Daily usage history. Zero is a valid reported value. Any missing day leaves the estimate pending. Once complete, projected shortfall is the positive difference between last week's total and today's balance. Editing history recalculates the estimate. Current issues, recorded collections, stock receipts and confirmed physical counts change the available balance. This baseline assumes unchanged usage and excludes future supply, expiries and unmet demand.
 * **Simulated or incomplete.** All people, institutional identity, clearance records, starting stock and distances are fixtures. ETAs are voluntary estimates. Notifications and coordinator escalation are in-app. Hindi is available for invitation responses and pausing. Full localization, document verification, external messaging and clinical integration remain open. Stock outlook accuracy has not been evaluated on hospital data.
-* **Security and reliability.** Loopback access and workspace separation support a local demo. Production needs authenticated principals, authorization by role, retention controls and tamper-resistant audit storage. One worker polls workspace files every two seconds. All-workspace refreshes, full decision snapshots, serial provider calls and in-process socket subscriptions impose scaling limits. Timers resume from persisted deadlines when the service returns. There is no uptime, throughput, delivery or clinical-outcome benchmark.
-* **Evidence.** The backend suite exercises all 24 group/component policy combinations, retries, concurrent last-unit acceptance, provider failures, scheduled dispatch, cooldown, expiry, escalation and review. Browser QA covers a two-unit request, independent hospital and donor tabs, connectivity recovery, a second-wave Hindi decline/accept scenario and 18 route/state cases at five widths. Deadline tests move stored due times forward to exercise the normal worker without waiting for presentation-length timers. Local provider tests use the actual Gemini SDK with a deterministic HTTP transport and real in-memory Qdrant. Hosted connectivity has not been established.
+* **Security and reliability.** Loopback access and workspace separation support a local demo. Production needs authenticated principals, authorization by role, retention controls and tamper-resistant audit storage. In local mode one worker checks workspace files every two seconds. Hosted timers advance when a workspace is read, including while a dashboard is polling. All-workspace refreshes, full decision snapshots, serial provider calls and in-process socket subscriptions impose scaling limits. Timers resume from persisted deadlines when the service returns. There is no uptime, throughput, delivery or clinical-outcome benchmark.
+* **Evidence.** The backend suite exercises all 24 group/component policy combinations, retries, concurrent last-unit acceptance, provider failures, scheduled dispatch, cooldown, expiry, escalation and review. Browser QA covers a two-unit request, independent hospital and donor tabs, connectivity recovery, a second-wave Hindi decline/accept scenario and 18 route/state cases at five widths. Deadline tests move stored due times forward to exercise the normal worker without waiting for presentation-length timers. Local provider tests use the actual Gemini SDK with a deterministic HTTP transport and real in-memory Qdrant. Hosted smoke tests verified request creation, donor acceptance, Neon persistence and a hospital update without a page refresh. Hosted Gemini and Qdrant connectivity remains unverified.
 
 ## Files changed for this upgrade
 

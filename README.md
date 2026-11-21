@@ -1,50 +1,104 @@
-# Blood Buddy
+﻿# Blood Buddy
 
-Blood Buddy is a local emergency blood donor coordination demo. One React application gives a synthetic hospital and donor inboxes independent views of the same SQLite records. FastAPI commits each action before broadcasting a WebSocket update.
+Blood Buddy is a hackathon demonstration of emergency blood donor coordination. A hospital can create a request, inspect why donors were selected or excluded, send invitations in timed waves, and follow responses through collection. Donor inboxes and hospital views share the same synthetic workspace.
+
+**[Try the live demo](https://blood-buddy-dusky.vercel.app)** · [Technical evaluation](HACKATHON.md) · [Interaction audit](INTERACTION_AUDIT.md) · [Backend guide](server/README.md)
+
+> This is a synthetic demonstration. It has no individual user authentication, clinical verification, real donor directory, or external notification delivery. Do not enter real patient, hospital, or donor data.
+
+## The problem
+
+During an urgent blood request, a coordinator needs to identify suitable donors, avoid contacting the same people repeatedly, and track who has committed. Blood Buddy demonstrates this workflow with an explainable ranking, invitation history, and a shared request timeline.
+
+## Main features
+
+- **Hospital workspace** for creating and tracking requests, reviewing potential duplicates, and inspecting candidate scores and exclusions.
+- **Donor inbox** for accepting or declining invitations, sharing a travel estimate, pausing availability, and recording progress.
+- **Invitation waves** that broaden outreach, expire unanswered invitations, apply cooldowns, and flag outstanding needs for a coordinator.
+- **Audit history and analytics** based on recorded workspace activity, including invitation responses and request status.
+- **Inventory and stock outlook** with recorded receipts, issues and counts, plus a simple seven-day estimate when usage history is complete.
+- **Optional semantic retrieval** using Gemini embeddings and Qdrant for synthetic donor logistics notes. Structured matching works locally without provider keys.
+
+## Try the demo
+
+1. Open the [live app](https://blood-buddy-dusky.vercel.app), choose **Hospital**, then **Start fresh demo**.
+2. Walk through the four request steps. The demonstration prefills a critical O-negative whole-blood request for one unit.
+3. Submit the request. Expand **Match explanations** to inspect the decision, score factors, and excluded donors.
+4. Open the invited donor's inbox in another tab. Decline the invitation. Keep the hospital dashboard open while the next wave is checked.
+5. Open the next invited donor's inbox and accept. The hospital view updates with the commitment. You can then share an ETA, mark travel and arrival, and record a synthetic collection from the hospital view.
+6. Choose **Start fresh demo** again to create a separate workspace for another run.
+
+The hosted dashboard refreshes by polling approximately every three seconds. The hosted service checks wave deadlines when a workspace is read, so keep a dashboard open during the wave demonstration. The local version uses WebSockets and a background worker.
+
+## How matching works
+
+The backend first filters donors using the demo's component and blood-group policy, available clearance records, availability, commitments, travel preferences, and search radius. A weighted coordination score then considers compatibility, proximity, review records, response history, and recent activity. Each decision run records its inputs and exclusions.
+
+Invitation priority also considers recent contact frequency, cooldowns, and daily limits. A decline is counted as a response. Vector similarity is an optional tie-breaker for eligible donors when a logistics preference and both cloud providers are configured. It cannot bypass the structured filters. The score is an operational ranking, and the collection team remains responsible for clinical screening.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    H[Hospital dashboard] -->|HTTPS| API[FastAPI service]
+    D[Donor inbox] -->|HTTPS| API
+    API --> M[Compatibility filters and weighted scoring]
+    M -->|Optional logistics search| G[Gemini embeddings]
+    G --> Q[Qdrant]
+    API --> DB[(SQLite locally / Neon-hosted workspace snapshots)]
+    API -->|Local WebSockets| H
+    API -->|Local WebSockets| D
+    H -->|Hosted polling| API
+    D -->|Hosted polling| API
+```
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| Backend | Python, FastAPI, Pydantic |
+| Local persistence | SQLite, one database per synthetic workspace |
+| Hosted persistence | Neon Postgres stores serialized SQLite workspaces. Advisory locks serialize concurrent workspace changes. |
+| Optional retrieval | Gemini embeddings and Qdrant |
+| Deployment | Vercel services for the frontend and backend |
 
 ## Run locally
 
-Use Python 3.11+ and Node.js 22.12+ (or a current Node 24 release). In a Windows PowerShell terminal at the project root:
+Requirements are Node.js 22.12 or newer, Python 3.11 or newer, and Git. The default local mode needs no cloud credentials.
 
-```powershell
-cd server
-python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
+1. Clone the repository and open it:
 
-In a second terminal at the project root:
+   ```powershell
+   git clone https://github.com/rudranhk/hack_pro.git
+   cd hack_pro
+   ```
 
-```powershell
-npm ci
-npm run dev -- --port 5173 --strictPort
-```
+2. Start the backend in a PowerShell terminal:
 
-Open [Blood Buddy](http://localhost:5173). Use one backend worker. The demo role switcher, HTTP API and notification channels are designed for loopback access.
+   ```powershell
+   cd server
+   python -m venv .venv
+   .\.venv\Scripts\python -m pip install -r requirements.txt
+   .\.venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8000
+   ```
 
-## Vercel services
+3. Start the frontend in a second terminal at the repository root:
 
-The Vercel configuration routes `/api/*` and `/ws/*` to FastAPI and other paths to the Vite app. Browser requests use the same origin in production. For `vercel dev`, set `VITE_API_BASE_URL=/` so the Vite development build uses the Vercel router. For the existing separate local servers, `npm run dev` continues to use FastAPI on port 8000. An explicit `VITE_API_BASE_URL` can point to a different backend.
+   ```powershell
+   npm ci
+   npm run dev -- --port 5173 --strictPort
+   ```
 
-The local service stores workspaces in SQLite files. Hosted demo mode uses the provisioned Neon database to persist each synthetic workspace, with a PostgreSQL advisory lock serializing concurrent workspace changes. Hosted clients poll every three seconds and each workspace read checks invitation deadlines. Timers therefore advance while a dashboard is open. The hosted demo exposes interchangeable synthetic roles and has no user authentication. Do not use real donor or hospital data.
+4. Open [http://localhost:5173](http://localhost:5173). The API documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-## Judge walkthrough
+Use one backend worker in local mode. Workspace files are stored under `server/data/` and are ignored by Git. Linux and macOS users can activate `.venv/bin/activate` and run the equivalent `python` commands.
 
-Open Hospital and select **Start fresh demo**. Submit the critical O-negative request, inspect the matching decisions, decline from the first donor inbox, then accept from the second donor inbox after wave 2 opens. Keep the hospital dashboard open to watch the commitments change.
+### Optional Gemini and Qdrant setup
 
-The [technical evaluation and five-minute script](HACKATHON.md) includes the competitive comparison, dispatch policy, architecture, database schema, API and WebSocket contracts, test coverage and production limitations.
+Copy `server/.env.example` to `server/.env` and set `GEMINI_API_KEY`, `QDRANT_URL`, and `QDRANT_API_KEY`. Restart FastAPI. Select a logistics preference in the request wizard to use semantic retrieval. When the providers are absent or unavailable, the app displays the local matching source and reason. Keep credentials out of Git. The public demo currently runs with local rules because hosted Gemini and Qdrant credentials are not configured.
 
-Open **Hospital → Blood Stock → Seven-day stock outlook** to record an issue or inspect projected consumption. Select the component and blood group, then confirm the last seven completed UTC dates under **Daily usage history**. The outlook shows the shortfall if the coming week repeats those recorded totals with no replenishment.
+## Tests
 
-## Matching modes
-
-Without credentials, FastAPI filters the synthetic donor registry and ranks eligible candidates locally. The request page displays **Local rules** and the reason. Structured requests always use local rules. For optional logistics-note retrieval, select a logistics preference on the review step and configure the two providers as described in [the backend guide](server/README.md). Only completed vector searches display **Gemini + Qdrant**.
-
-Synthetic records represent an external review and an earliest eligible date for their listed components. Missing review, future dates, existing commitments, unavailability and distance exclude donors before retrieval. Whole blood and platelets use an identical-group outreach policy. Plasma uses a separate deterministic filter. Clinical screening and approval are external to this demonstration.
-
-The [page and interaction audit](INTERACTION_AUDIT.md) covers dashboard drill-downs, donor preferences, inventory controls and optional staff confirmation.
-
-## Verification
+Run from the project root:
 
 ```powershell
 npm run build
@@ -54,4 +108,21 @@ cd server
 .\.venv\Scripts\python qa_browser.py
 ```
 
-The regression suite uses temporary databases, two simultaneous responses to the last unit, a request WebSocket and an in-memory Qdrant collection with synthetic test embeddings.
+The backend tests cover compatibility, invitation transitions, concurrent acceptance, scheduled waves, inventory, and local provider integration. Browser QA uses headless Microsoft Edge on Windows, temporary workspaces, a deterministic Gemini SDK test transport, and in-memory Qdrant. Hosted smoke testing covered request creation, invitation acceptance, persistence, and a hospital update without a page refresh.
+
+## Repository structure
+
+```text
+src/                    React pages, components, API client and styles
+server/                 FastAPI routes, matching, persistence and tests
+server/.env.example     Optional local settings
+vercel.json             Vercel frontend and backend routing
+HACKATHON.md            Technical evaluation and presentation script
+INTERACTION_AUDIT.md    Page-by-page interaction audit
+```
+
+## Deployment and limitations
+
+The live demo runs on Vercel with a Neon database. The production branch is `deploy/vercel-demo`. Hosted storage uses one serialized SQLite snapshot per workspace, protected by a PostgreSQL advisory lock. This design supports the synthetic demonstration and has not been benchmarked for production scale.
+
+The hosted instance uses synthetic records, in-app invitations, and polling. It does not send SMS or email, authenticate hospital and donor identities, integrate with blood-bank systems, verify medical eligibility, or independently validate forecast accuracy. Distances and starting inventory are sample data. The seven-day stock outlook assumes recent usage repeats without incoming stock or expiry. For configuration details, see the [backend guide](server/README.md).

@@ -22,7 +22,7 @@ The inventory below follows the routes registered by React Router. It groups rep
 | `/donor/alert`, `/donor/screening`, `/donor/status` | Existing deep links open the same persisted donor workspace and use its current actions. Clinical screening remains external. |
 | Donor privacy, `/donor/privacy` | Back returns to the selected donor inbox. The brand returns home. |
 | Missing request, unknown donor, unmatched URL | Each shows a recovery link to the request list, valid donor inbox, or home. |
-| Shared feedback | Buttons guard in-flight mutations. Errors surface with backend detail when available. Success follows the persisted HTTP operation. Dismiss closes a toast. After a snapshot failure the user can retry. Socket reconnect triggers a fresh snapshot; a periodic refresh covers missed invalidations. |
+| Shared feedback | Buttons guard in-flight mutations. Errors surface with backend detail when available. Success follows the persisted HTTP operation. Dismiss closes a toast. After a snapshot failure the user can retry. Local socket reconnect triggers a fresh snapshot. The hosted demo polls for updates approximately every three seconds. |
 
 ## Important fixes
 
